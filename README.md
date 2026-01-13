@@ -1,39 +1,36 @@
-# 🎓 Mezun Takip Sistemi
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-Konya Teknik Üniversitesi mezun öğrencileri için geliştirilmiş, mezunların birbirleriyle iletişim kurabileceği, kariyer fırsatlarını takip edebileceği ve etkileşimde bulunabileceği özel bir sosyal medya platformu.
+## Getting Started
 
-## 🚀 Proje Hakkında
-
-Bu proje, mezunlar arasındaki bağı güçlendirmek ve üniversite sonrası iletişimi sürdürülebilir kılmak amacıyla geliştirilmektedir. Modern web teknolojileri kullanılarak inşa edilen sistem, kullanıcı dostu bir arayüz ve güçlü bir altyapı sunmayı hedefler.
-
-## 🛠️ Teknoloji Yığını (Tech Stack)
-
-Proje **PERN** (PostgreSQL, Express, React, Node) stack mimarisi üzerine kurulmuştur:
-
-- **Frontend:** React (v19), TypeScript, Vite
-- **Backend:** Node.js, Express.js
-- **Veritabanı:** PostgreSQL
-- **ORM:** Prisma
-- **DevOps & Araçlar:** Docker, pgAdmin
-
-## 📂 Proje Yapısı
-
-- `/client`: React tabanlı frontend uygulaması.
-- `/server`: Express.js ve Prisma tabanlı backend servisi.
-- `docker-compose.yml`: Veritabanı ve yönetim arayüzü (pgAdmin) konfigürasyonu.
-
-## ⚙️ Kurulum ve Çalıştırma
-
-Projeyi yerel ortamınızda çalıştırmak için aşağıdaki adımları takip edebilirsiniz.
-
-### Ön Gereksinimler
-
-- Node.js (v18 veya üzeri)
-- Docker ve Docker Compose
-
-### 1. Repoyu Klonlayın
+First, run the development server:
 
 ```bash
-git clone [https://github.com/kullaniciadi/mezun-takip-sistemi.git](https://github.com/kullaniciadi/mezun-takip-sistemi.git)
-cd mezun-takip-sistemi
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
