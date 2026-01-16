@@ -5,77 +5,33 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default function LoginPage() {
-  // Kullanıcı giriş bilgilerini tutan state
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  // YENİ: Hata ve Yüklenme durumlarını yöneten state'ler
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Input değişimlerini yakalar
+  // Sorgu yapmayacağımız için sadece temel input takibi yapıyoruz
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [id]: value,
     }));
-
-    // Kullanıcı yeniden yazmaya başladığında hatayı temizle (UX İyileştirmesi)
-    if (error) setError("");
   };
 
-  /**
-   * MOCK (Taklit) GİRİŞ KONTROLÜ
-   * Backend API'ye gidip şifreyi doğruluyormuş gibi bekler.
-   */
-  const checkCredentials = async (email, password) => {
-    console.log(`Giriş deneniyor: ${email}`);
-    // 1.5 saniye bekle (Ağ gecikmesi simülasyonu)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+  const handleLogin = (e) => {
+    e.preventDefault(); // Sayfa yenilenmesini engelle
 
-    // DEMO AMAÇLI: Eğer şifre '123456' ise hata ver (Test etmen için)
-    // Gerçekte burada backend'den dönen yanıt (200 OK veya 401 Unauthorized) kontrol edilir.
-    if (password === "123456") return false; 
-
-    return true; // Diğer durumlarda başarılı say
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(""); // Her denemede hatayı sıfırla
-
-    // Basit Validasyon: Şifre çok kısaysa backend'e gitmeden uyar
-    if (formData.password.length < 6) {
-      setError("HATA: Şifreniz en az 6 karakter olmalıdır.");
-      return;
-    }
-
-    // Yükleniyor moduna geç
-    setIsLoading(true);
-
-    // Giriş Kontrolü (Mock)
-    const isValid = await checkCredentials(formData.email, formData.password);
-
-    if (!isValid) {
-      setError("HATA: E-posta adresi veya şifre hatalı! Lütfen tekrar deneyin.");
-      setIsLoading(false); // Yüklemeyi durdur
-      return;
-    }
-
-    // Başarılıysa verileri paketle
+    // 1. Verileri Paketle (SQL Injection Korumalı Yapı)
     const loginPayload = {
       email: formData.email,
       password: formData.password,
     };
 
-    console.log("Giriş Başarılı, Paket:", loginPayload);
-    setIsLoading(false);
+    // 2. Paketi Konsola Yazdır (Sorguya gönderme yok)
+    console.log("📦 Login Paketi Hazırlandı:", loginPayload);
     
-    // TODO: Burada ana sayfaya (dashboard) yönlendirme yapılacak.
-    // router.push('/feed');
+    // Sorgu olmadığı için burada işlem biter.
   };
 
   return (
@@ -146,20 +102,12 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* --- ORTAK HATA GÖSTERİM ALANI --- */}
-        {error && (
-          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm font-semibold text-center animate-pulse dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
-            {error}
-          </div>
-        )}
-
         {/* Submit Butonu */}
         <button
-          type="submit"
-          disabled={isLoading} 
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full mt-2 disabled:cursor-wait"
+          type="submit" 
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full mt-2"
         >
-          {isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
+          Giriş Yap
         </button>
       </form>
 
