@@ -21,7 +21,7 @@ export default function AuthLayout({ children }) {
   const [bgImage] = useState(() => {
     // Tarayıcı tarafında çalıştığımız için kullanıcının sistem saatini alıyoruz.
     const hour = new Date().getHours();
-
+    //const hour = 12 ; //test kodu
     // Saat aralıklarına göre uygun görseli döndürüyoruz:
     // 06:00 - 11:59 -> Sabah
     // 12:00 - 17:59 -> Öğle
