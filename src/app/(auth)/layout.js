@@ -10,15 +10,15 @@ export default function AuthLayout({ children }) {
   useEffect(() => {
     // Kullanıcının saatini al
     const hour = new Date().getHours();
-    //test kodu const hour = 20;
+    //test kodu const hour = 19;
 
     // Mantık: Sabah (06-12), Öğle (12-18), Akşam/Gece (18-06)
     if (hour >= 6 && hour < 12) {
-      setBgImage("/sabah.png");
+      setBgImage("/sabah.jpeg");
     } else if (hour >= 12 && hour < 18) {
       setBgImage("/ogle.jpg");
     } else {
-      setBgImage("/aksam.png");
+      setBgImage("/aksam.jpeg");
     }
   }, []);
 

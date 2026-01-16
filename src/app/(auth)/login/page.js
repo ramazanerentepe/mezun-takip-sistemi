@@ -1,16 +1,55 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function LoginPage() {
+  // Kullanıcı giriş bilgilerini tutan state tanımı
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  /**
+   * Input alanlarındaki değişiklikleri dinler ve state'i günceller.
+   * Dinamik olarak 'id' özelliğini anahtar, 'value' özelliğini değer olarak kullanır.
+   */
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  /**
+   * Form gönderildiğinde (submit) çalışacak fonksiyon.
+   * Verileri SQL Enjeksiyonuna karşı korumalı bir JSON objesi olarak paketler.
+   */
+  const handleLogin = (e) => {
+    e.preventDefault(); // Sayfanın varsayılan yenilenme davranışını engeller
+
+    // Veri Paketleme (Payload Creation)
+    const loginPayload = {
+      email: formData.email,
+      password: formData.password,
+    };
+
+    // Geliştirme aşamasında payload kontrolü
+    console.log("Login Payload:", loginPayload);
+
+    // TODO: Backend API servisine (ör. /api/auth/login) istek burada atılacak.
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. Başlık ve Logo Alanı */}
+      {/* --- Header Bölümü: Logo ve Karşılama Mesajı --- */}
       <div className="flex flex-col items-center text-center gap-2">
         <div className="relative w-20 h-20 mb-2">
-           {/* Logo varsa gösterir, yoksa gri kutu çıkar (hata vermez) */}
           <Image 
             src="/logo.png" 
-            alt="Okul Logosu" 
+            alt="Kurum Logosu" 
             fill 
             className="object-contain"
             priority
@@ -24,10 +63,10 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* 2. Giriş Formu */}
-      <form className="flex flex-col gap-4">
+      {/* --- Login Formu --- */}
+      <form onSubmit={handleLogin} className="flex flex-col gap-4">
         
-        {/* Email */}
+        {/* E-posta Input Grubu */}
         <div className="space-y-1">
           <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-gray-300" htmlFor="email">
             E-posta Adresi
@@ -40,10 +79,13 @@ export default function LoginPage() {
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect="off"
+            value={formData.email}
+            onChange={handleChange}
+            required
           />
         </div>
 
-        {/* Şifre */}
+        {/* Şifre Input Grubu */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-gray-300" htmlFor="password">
@@ -62,19 +104,22 @@ export default function LoginPage() {
             placeholder="••••••••"
             type="password"
             autoComplete="current-password"
+            value={formData.password}
+            onChange={handleChange}
+            required
           />
         </div>
 
-        {/* Giriş Butonu */}
+        {/* Submit Butonu */}
         <button
-          type="button" // Backend bağlayınca 'submit' yapacağız
+          type="submit" 
           className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full mt-2"
         >
           Giriş Yap
         </button>
       </form>
 
-      {/* 3. Alt Linkler (Kayıt Ol) */}
+      {/* --- Footer Linkleri --- */}
       <div className="text-center text-sm text-gray-500 dark:text-gray-400">
         Hesabınız yok mu?{" "}
         <Link 
