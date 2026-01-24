@@ -29,10 +29,12 @@ model User {
   department   Department? @relation(fields: [departmentId], references: [id])
 
   // İlişkiler
-  profile  Profile?
-  posts    Post[]
-  comments Comment[]
-  likes    Like[]
+  profile    Profile?
+  posts      Post[]
+  comments   Comment[]
+  likes      Like[]
+  following  Follows[] @relation("follower") // Benim takip ettiklerim
+  followedBy Follows[] @relation("following") // Beni takip edenler
 }
 
 // Rolleri Güncelledik
@@ -140,4 +142,18 @@ model Like {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
+}
+
+// 11. Takipler
+model Follows {
+  follower   User   @relation("follower", fields: [followerId], references: [id])
+  followerId String
+
+  following   User   @relation("following", fields: [followingId], references: [id])
+  followingId String
+
+  createdAt DateTime @default(now())
+
+  // Bir kişi aynı kişiyi iki kere takip edemesin diye özel kural:
+  @@id([followerId, followingId])
 }
