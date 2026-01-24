@@ -1,5 +1,4 @@
-// prisma/schema.prisma
-
+// 1. Ayarlar
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,9 +8,136 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// GEÇİCİ TEST TABLOSU (Daha sonra sileceğiz)
-model TestTable {
-  id           Int      @id @default(autoincrement())
-  denemeVerisi String
-  createdAt    DateTime @default(now())
+// 2. Bölümler (Bilgisayar Müh, Makine Müh vb.)
+model Department {
+  id    String @id @default(uuid())
+  name  String @unique // Örn: "Bilgisayar Mühendisliği"
+  users User[] // Bu bölümde okuyanlar/çalışanlar
+}
+
+// 3. Kullanıcı Modeli
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  role       Role     @default(GRADUATE)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  // Kullanıcının Bölümü (Süper Admin hariç herkesin bölümü olmalı)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  // İlişkiler
+  profile  Profile?
+  posts    Post[]
+  comments Comment[]
+  likes    Like[]
+}
+
+// Rolleri Güncelledik
+enum Role {
+  SUPER_ADMIN // Rektör (Her yere erişir)
+  ADMIN // Bölüm Admini (Sadece kendi bölümünü yönetir)
+  ACADEMIC // Akademisyen
+  GRADUATE // Mezun/Öğrenci
+}
+
+// 4. Profil Detayları
+model Profile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstName String
+  lastName  String
+  bio       String?
+  avatarUrl String?
+  location  String?
+
+  // Özel Alanlar
+  diplomaNo     String? @unique // Mezunlar için
+  academicTitle String? // Akademisyenler için (Prof. Dr.)
+
+  // Sosyal Medya
+  linkedin String?
+  github   String?
+  website  String?
+
+  experiences Experience[]
+  educations  Education[]
+  skills      Skill[]
+}
+
+// 5. Yetenekler
+model Skill {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  profiles Profile[]
+}
+
+// 6. İş Deneyimi
+model Experience {
+  id        String  @id @default(uuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  company     String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+}
+
+// 7. Eğitim Bilgileri
+model Education {
+  id        String  @id @default(uuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  school    String
+  degree    String?
+  field     String?
+  startDate DateTime
+  endDate   DateTime?
+}
+
+// 8. Gönderiler
+model Post {
+  id       String @id @default(uuid())
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  content   String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  comments Comment[]
+  likes    Like[]
+}
+
+// 9. Yorumlar
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+// 10. Beğeniler
+model Like {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
 }
