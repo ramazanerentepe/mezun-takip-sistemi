@@ -34,6 +34,8 @@ erDiagram
         String password "Hashli"
         Role role "ADMIN, ACADEMIC, GRADUATE"
         Boolean isVerified "Onaylı mı?"
+        String verificationCode "Doğrulama Kodu (OTP)"
+        DateTime verificationCodeExpiry "Kodun Son Kullanma Tarihi"
         String departmentId FK "Bağlı olduğu bölüm"
     }
 
