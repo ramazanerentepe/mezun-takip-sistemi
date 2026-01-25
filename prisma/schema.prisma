@@ -24,6 +24,10 @@ model User {
   isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
 
+  //Doğrulama kodu
+  verificationCode       String? // 6 haneli kod buraya gelecek
+  verificationCodeExpiry DateTime? // Kodun son kullanma tarihi
+
   // Kullanıcının Bölümü (Süper Admin hariç herkesin bölümü olmalı)
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
