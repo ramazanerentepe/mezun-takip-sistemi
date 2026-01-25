@@ -4,17 +4,28 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+// GEÇİCİ BÖLÜM LİSTESİ (Backend bağlanana kadar buradan çekeceğiz)
+const MOCK_DEPARTMENTS = [
+  { id: "1", name: "Bilgisayar Mühendisliği" },
+  { id: "2", name: "Elektrik-Elektronik Mühendisliği" },
+  { id: "3", name: "Makine Mühendisliği" },
+  { id: "4", name: "İnşaat Mühendisliği" },
+  { id: "5", name: "Endüstri Mühendisliği" },
+  { id: "6", name: "Mimarlık" },
+  { id: "7", name: "Yazılım Mühendisliği" },
+  { id: "8", name: "Yapay Zeka ve Makine Öğrenmesi" },
+];
+
 export default function RegisterPage() {
   const [userType, setUserType] = useState("graduate");
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Hata mesajlarını yöneteceğimiz tek nokta
   const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
     email: "",
+    departmentId: "", // YENİ: Bölüm ID'si eklendi
     password: "",
     confirmPassword: "",
     diplomaNo: "", 
@@ -25,8 +36,6 @@ export default function RegisterPage() {
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
-    
-    // Kullanıcı düzeltme yaparken hata mesajını ekrandan kaldır
     if (error) setError("");
   };
 
@@ -34,8 +43,8 @@ export default function RegisterPage() {
    * MOCK (Taklit) DOĞRULAMA
    */
   const checkIdentityFromSchoolDB = async (type, uniqueId) => {
-    console.log(`${type} - ${uniqueId} sorgulanıyor...`);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    console.log(`${type} - ${uniqueId} okul veritabanından sorgulanıyor...`);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 saniye bekle
     return true; 
   };
 
@@ -45,45 +54,59 @@ export default function RegisterPage() {
 
     // 1. Şifre Eşleşme Kontrolü
     if (formData.password !== formData.confirmPassword) {
-      setError("HATA: Girdiğiniz şifreler birbiriyle uyuşmuyor. Lütfen kontrol ediniz.");
+      setError("HATA: Şifreler uyuşmuyor.");
       return; 
     }
 
     // 2. Şifre Uzunluk Kontrolü
     if (formData.password.length < 6) {
-      setError("HATA: Güvenliğiniz için şifreniz en az 6 karakter olmalıdır.");
+      setError("HATA: Şifre en az 6 karakter olmalıdır.");
+      return;
+    }
+
+    // 3. Bölüm Seçimi Kontrolü (YENİ)
+    if (!formData.departmentId) {
+      setError("HATA: Lütfen bölümünüzü seçiniz.");
       return;
     }
 
     setIsLoading(true);
 
-    // 3. Okul Veritabanı Kontrolü
+    // 4. Okul Veritabanı Kontrolü (Simülasyon)
     const uniqueIdToCheck = userType === "graduate" ? formData.diplomaNo : formData.email;
     const isVerified = await checkIdentityFromSchoolDB(userType, uniqueIdToCheck);
 
     if (!isVerified) {
-      setError("HATA: Okul kayıtlarında bu bilgilerle eşleşen bir kişi bulunamadı! Lütfen bilgilerinizi kontrol edin.");
+      setError("HATA: Okul kayıtlarında eşleşme bulunamadı.");
       setIsLoading(false);
       return; 
     }
 
-    // 4. Paketleme
+    // 5. Paketleme (Console'a yazdırıyoruz)
     const registerPayload = {
-      type: userType,
-      name: formData.name,
-      surname: formData.surname,
+      userRole: userType === "graduate" ? "GRADUATE" : "ACADEMIC", // Backend formatına uygun rol ismi
+      firstName: formData.name,
+      lastName: formData.surname,
       email: formData.email,
-      password: formData.password,
+      departmentId: formData.departmentId, // YENİ: Bölüm bilgisi pakette
+      password: formData.password, // (Not: Gerçekte burası hash'lenecek)
+      
+      // Mezunsa ekle
       ...(userType === "graduate" && {
-        diplomaNumber: formData.diplomaNo,
-        graduationYear: formData.gradYear,
+        diplomaNo: formData.diplomaNo,
+        graduationYear: parseInt(formData.gradYear),
       }),
+      
+      // Akademisyense ekle
       ...(userType === "academician" && {
         academicTitle: formData.title,
       }),
     };
 
-    console.log("Kayıt Başarılı, Paket:", registerPayload);
+    console.log("✅ FRONTEND PAKETİ HAZIR:", registerPayload);
+    
+    // Simülasyon bitişi (Backend olmadığı için burada duruyoruz)
+    alert("Paket konsola yazıldı! (F12 -> Console)");
     setIsLoading(false); 
   };
 
@@ -101,6 +124,7 @@ export default function RegisterPage() {
         </p>
       </div>
 
+      {/* Kullanıcı Tipi Seçimi (Tablar) */}
       <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg dark:bg-zinc-800">
         <button
           type="button"
@@ -136,7 +160,7 @@ export default function RegisterPage() {
               id="name"
               type="text"
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
-              placeholder="Ad" // GÜNCELLENDİ
+              placeholder="Ad"
               required
               onChange={handleChange}
             />
@@ -147,7 +171,7 @@ export default function RegisterPage() {
               id="surname"
               type="text"
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
-              placeholder="Soyad" // GÜNCELLENDİ
+              placeholder="Soyad"
               required
               onChange={handleChange}
             />
@@ -167,7 +191,35 @@ export default function RegisterPage() {
           />
         </div>
 
-        {/* Dinamik Alanlar */}
+        {/* --- YENİ EKLENEN KISIM: Bölüm Seçimi --- */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium dark:text-gray-300">Bölümünüz</label>
+          <div className="relative">
+            <select
+              id="departmentId" // State'teki isimle aynı olmalı
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white dark:bg-black appearance-none cursor-pointer"
+              required
+              onChange={handleChange}
+              defaultValue=""
+            >
+              <option value="" disabled>Bölüm Seçiniz...</option>
+              {MOCK_DEPARTMENTS.map((dept) => (
+                <option key={dept.id} value={dept.id} className="text-black">
+                  {dept.name}
+                </option>
+              ))}
+            </select>
+            {/* Küçük ok ikonu */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        {/* ----------------------------------------- */}
+
+        {/* Dinamik Alanlar (Mezun / Akademisyen Farkı) */}
         {userType === "graduate" ? (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -254,7 +306,7 @@ export default function RegisterPage() {
           disabled={isLoading}
           className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full mt-2 transition-colors disabled:opacity-50 disabled:cursor-wait"
         >
-          Kayıt Ol
+          {isLoading ? "İşleniyor..." : "Kayıt Ol"}
         </button>
       </form>
 

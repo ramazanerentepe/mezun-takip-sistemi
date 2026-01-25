@@ -88,7 +88,7 @@ export default function LoginPage() {
             className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-white"
             id="email"
             name="email"
-            placeholder="ornek@ktun.edu.tr"
+            placeholder="email@ktun.edu.tr"
             type="email"
             autoCapitalize="none"
             autoComplete="email"
