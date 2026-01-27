@@ -3,19 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-// GEÇİCİ VERİLER (Backend gelince silinecek)
-const MOCK_DEPARTMENTS = [
-  { id: "1", name: "Bilgisayar Mühendisliği" },
-  { id: "2", name: "Elektrik-Elektronik Mühendisliği" },
-  { id: "3", name: "Makine Mühendisliği" },
-  { id: "4", name: "İnşaat Mühendisliği" },
-  { id: "5", name: "Endüstri Mühendisliği" },
-  { id: "6", name: "Mimarlık" },
-  { id: "7", name: "Yazılım Mühendisliği" },
-  { id: "8", name: "Yapay Zeka ve Makine Öğrenmesi" },
-  { id: "9", name: "Harita Mühendisliği" },
-];
+import { useRouter } from "next/navigation";
+import { getDepartmentsAction } from "@/actions/get-departments-action";
 
 const ACADEMIC_TITLES = [
   "Prof. Dr.", "Doç. Dr.", "Dr. Öğr. Üyesi", 
@@ -23,9 +12,14 @@ const ACADEMIC_TITLES = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [userType, setUserType] = useState("graduate");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // --- YENİ: Bölüm Verisi için State ---
+  const [departments, setDepartments] = useState([]); // Veritabanından gelecek liste
+  // ------------------------------------
 
   // ARAMA STATE'LERİ
   const [searchTerm, setSearchTerm] = useState(""); 
@@ -36,21 +30,33 @@ export default function RegisterPage() {
   const [isTitleDropdownOpen, setIsTitleDropdownOpen] = useState(false); 
   const titleDropdownRef = useRef(null);
 
-  // FORM VERİLERİ (Şifre burada tutuluyor)
+  // FORM VERİLERİ
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
     email: "",
     departmentId: "",
-    password: "",        // Şifre alanı burada
-    confirmPassword: "", // Şifre tekrarı burada
+    password: "",        
+    confirmPassword: "", 
     diplomaNo: "", 
     gradYear: "",  
     title: "",     
   });
 
-  // Filtrelemeler
-  const filteredDepartments = MOCK_DEPARTMENTS.filter((dept) =>
+  // --- YENİ: Sayfa açılınca bölümleri çek ---
+  useEffect(() => {
+    async function loadDepartments() {
+      const result = await getDepartmentsAction();
+      if (result.success) {
+        setDepartments(result.data);
+      }
+    }
+    loadDepartments();
+  }, []);
+  // -----------------------------------------
+
+  // Filtrelemeler (Artık 'departments' state'ini kullanıyor)
+  const filteredDepartments = departments.filter((dept) =>
     dept.name.toLocaleLowerCase('tr').includes(searchTerm.toLocaleLowerCase('tr'))
   );
 
@@ -74,7 +80,6 @@ export default function RegisterPage() {
 
   const handleChange = (e) => {
     const { id, value } = e.target;
-    // Burada [id] demek: id'si "password" olan input değişirse, state'teki "password"ü güncelle demek.
     setFormData((prev) => ({ ...prev, [id]: value }));
     if (error) setError("");
   };
@@ -83,7 +88,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(""); 
 
-    // Şifre Kontrolleri
+    // Validasyonlar
     if (formData.password !== formData.confirmPassword) {
       setError("HATA: Şifreler uyuşmuyor.");
       return; 
@@ -93,7 +98,7 @@ export default function RegisterPage() {
       return;
     }
     if (!formData.departmentId) {
-      setError("HATA: Lütfen geçerli bir bölüm seçiniz.");
+      setError("HATA: Lütfen listeden geçerli bir bölüm seçiniz.");
       return;
     }
     if (userType === "academician" && !formData.title) {
@@ -103,18 +108,13 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Simülasyon (1 saniye bekle)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    // PAKETLEME ANI
     const registerPayload = {
       userRole: userType === "graduate" ? "GRADUATE" : "ACADEMIC",
       firstName: formData.name,
       lastName: formData.surname,
       email: formData.email,
       departmentId: formData.departmentId, 
-      departmentName: searchTerm,
-      password: formData.password, // BURAYA DİKKAT: Şifreyi state'ten alıp pakete koyuyoruz.
+      password: formData.password,
       
       ...(userType === "graduate" && {
         diplomaNo: formData.diplomaNo,
@@ -125,13 +125,19 @@ export default function RegisterPage() {
       }),
     };
 
-    // Sadece konsola yazıyoruz (Alert yok)
-    console.log("📦 PAKET HAZIRLANDI:", registerPayload);
-    
-    // Şifrenin gidip gitmediğini özel olarak görmek istersen konsola bakabilirsin:
-    console.log("🔑 Şifre Kontrolü:", registerPayload.password ? "✅ Şifre Var" : "❌ Şifre YOK");
+    try {
+      const result = await registerAction(registerPayload);
 
-    setIsLoading(false); 
+      if (result.success) {
+        router.push("/login");
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("Beklenmedik bir hata oluştu.");
+    } finally {
+      setIsLoading(false); 
+    }
   };
 
   return (
@@ -220,16 +226,19 @@ export default function RegisterPage() {
           <input
             type="text"
             className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white placeholder:text-gray-400"
-            placeholder="Bölüm Ara (Örn: Bilgisayar)"
+            placeholder="Bölüm"
             value={searchTerm}
             required
+            // Kullanıcı tıkladığında listeyi aç
+            onFocus={() => setIsDropdownOpen(true)}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setIsDropdownOpen(true);
-              setFormData((prev) => ({ ...prev, departmentId: "" }));
+              setFormData((prev) => ({ ...prev, departmentId: "" })); // Değişirse ID'yi sıfırla
             }}
-            onFocus={() => setIsDropdownOpen(true)}
           />
+          
+          {/* Dropdown Listesi */}
           {isDropdownOpen && (
             <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
               {filteredDepartments.length > 0 ? (
@@ -237,9 +246,9 @@ export default function RegisterPage() {
                   <div
                     key={dept.id}
                     onClick={() => {
-                      setSearchTerm(dept.name);
-                      setFormData((prev) => ({ ...prev, departmentId: dept.id }));
-                      setIsDropdownOpen(false);
+                      setSearchTerm(dept.name); // Inputa ismi yaz
+                      setFormData((prev) => ({ ...prev, departmentId: dept.id })); // ID'yi kaydet
+                      setIsDropdownOpen(false); // Listeyi kapat
                     }}
                     className="cursor-pointer px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-zinc-700 transition-colors"
                   >
@@ -247,13 +256,15 @@ export default function RegisterPage() {
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Sonuç yok.</div>
+                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                  {departments.length === 0 ? "Bölümler yükleniyor..." : "Sonuç bulunamadı."}
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* DİNAMİK ALANLAR */}
+        {/* DİNAMİK ALANLAR (Diploma No / Unvan) - AYNEN KORUNDU */}
         {userType === "graduate" ? (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -287,7 +298,7 @@ export default function RegisterPage() {
             <input
               type="text"
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white placeholder:text-gray-400"
-              placeholder="Unvan Seçiniz veya Yazınız"
+              placeholder="Unvan"
               value={titleSearchTerm}
               required
               onChange={(e) => {
@@ -321,11 +332,10 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ŞİFRE ALANLARI */}
+        {/* ŞİFRE ALANLARI - AYNEN KORUNDU */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-sm font-medium dark:text-gray-300">Şifre</label>
-            {/* id="password" ile onChange={handleChange} bağlantısı şifreyi kaydeder */}
             <input
               id="password"
               type="password"
@@ -348,7 +358,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Hata Mesajı */}
         {error && (
           <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm font-semibold text-center animate-pulse dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
             {error}
