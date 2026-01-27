@@ -1,4 +1,3 @@
-// src/actions/login-action.js
 "use server"; // Bu satır, bu kodun SADECE sunucuda çalışacağını garanti eder.
 
 import { PrismaClient } from "@prisma/client";

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getDepartmentsAction } from "@/actions/get-departments-action";
+import { getDepartmentsAction } from "@/actions/department/get-departments-action";
 
 const ACADEMIC_TITLES = [
   "Prof. Dr.", "Doç. Dr.", "Dr. Öğr. Üyesi", 
