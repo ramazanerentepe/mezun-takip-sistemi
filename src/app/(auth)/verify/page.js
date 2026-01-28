@@ -38,8 +38,9 @@ export default function VerifyPage() {
             priority 
           />
         </div>
+        
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Hesabınızı Doğrulayın
+          Konya Teknik Üniversitesi <br />Hesabınızı Doğrulayın
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Lütfen e-posta adresinize gönderilen 6 haneli kodu giriniz.
@@ -65,7 +66,6 @@ export default function VerifyPage() {
             name="code"
             type="text"
             maxLength={6} // En fazla 6 karakter
-            placeholder="XXXXXX"
             className="
               flex h-14 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 
               text-center text-2xl font-bold tracking-[0.5em] uppercase
