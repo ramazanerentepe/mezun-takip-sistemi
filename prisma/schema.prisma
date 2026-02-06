@@ -25,6 +25,7 @@ model User {
   createdAt  DateTime @default(now())
 
   //Doğrulama kodu
+  diplomaNo              String?   @unique // Mezunlar için
   verificationCode       String? // 6 haneli kod buraya gelecek
   verificationCodeExpiry DateTime? // Kodun son kullanma tarihi
 
@@ -62,7 +63,7 @@ model Profile {
   location  String?
 
   // Özel Alanlar
-  diplomaNo      String? @unique // Mezunlar için
+
   academicTitle  String? // Akademisyenler için (Prof. Dr.)
   graduationYear Int?
 
