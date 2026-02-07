@@ -6,6 +6,8 @@ import { sendMail } from "@/lib/send-mail";
 
 const prisma = new PrismaClient();
 
+const SALT_ROUNDS = 10; //hash derecesi
+
 //Üniversite veri tabanı diploma no isim soyisim sorgusu Devamlı true döner ilerde erişim gelince düzelt.
 async function verifyWithExternalDatabase(diplomaNo, name, surname , graduationYear) {
       return { valid: true };
@@ -56,7 +58,7 @@ export async function registerAction(data) {
     }
 
     // D. ŞİFRELEME VE KOD ÜRETME
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
     // 6 haneli doğrulama kodu
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let verificationCode = '';

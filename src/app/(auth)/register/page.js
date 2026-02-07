@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getDepartmentsAction } from "@/actions/department/get-departments-action";
+// --- EKLENDİ: Backend Kayıt Fonksiyonu ---
+import { registerAction } from "@/actions/auth/register-action"; 
 
 const ACADEMIC_TITLES = [
   "Prof. Dr.", "Doç. Dr.", "Dr. Öğr. Üyesi", 
@@ -17,9 +19,8 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- YENİ: Bölüm Verisi için State ---
-  const [departments, setDepartments] = useState([]); // Veritabanından gelecek liste
-  // ------------------------------------
+  // Bölüm Verisi State'i
+  const [departments, setDepartments] = useState([]); 
 
   // ARAMA STATE'LERİ
   const [searchTerm, setSearchTerm] = useState(""); 
@@ -43,7 +44,7 @@ export default function RegisterPage() {
     title: "",     
   });
 
-  // --- YENİ: Sayfa açılınca bölümleri çek ---
+  // Sayfa açılınca bölümleri çek
   useEffect(() => {
     async function loadDepartments() {
       const result = await getDepartmentsAction();
@@ -53,9 +54,8 @@ export default function RegisterPage() {
     }
     loadDepartments();
   }, []);
-  // -----------------------------------------
 
-  // Filtrelemeler (Artık 'departments' state'ini kullanıyor)
+  // Filtrelemeler
   const filteredDepartments = departments.filter((dept) =>
     dept.name.toLocaleLowerCase('tr').includes(searchTerm.toLocaleLowerCase('tr'))
   );
@@ -118,6 +118,7 @@ export default function RegisterPage() {
       
       ...(userType === "graduate" && {
         diplomaNo: formData.diplomaNo,
+        // Backend int beklediği için dönüşüm yapıyoruz
         graduationYear: parseInt(formData.gradYear),
       }),
       ...(userType === "academician" && {
@@ -126,14 +127,23 @@ export default function RegisterPage() {
     };
 
     try {
+      // Backend fonksiyonunu çağırıyoruz
       const result = await registerAction(registerPayload);
 
       if (result.success) {
-        router.push("/login");
+        // --- YÖNLENDİRME MANTIĞI ---
+        if (userType === "graduate") {
+          // Mezunlar kod doğrulamaya gider (Maili de taşıyoruz)
+          router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
+        } else {
+          // Akademisyenler girişe gider (Şu an backend kapalı ama mantık bu)
+          router.push("/login");
+        }
       } else {
         setError(result.message);
       }
     } catch (err) {
+      console.error(err);
       setError("Beklenmedik bir hata oluştu.");
     } finally {
       setIsLoading(false); 
@@ -229,16 +239,14 @@ export default function RegisterPage() {
             placeholder="Bölüm"
             value={searchTerm}
             required
-            // Kullanıcı tıkladığında listeyi aç
             onFocus={() => setIsDropdownOpen(true)}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setIsDropdownOpen(true);
-              setFormData((prev) => ({ ...prev, departmentId: "" })); // Değişirse ID'yi sıfırla
+              setFormData((prev) => ({ ...prev, departmentId: "" })); 
             }}
           />
           
-          {/* Dropdown Listesi */}
           {isDropdownOpen && (
             <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
               {filteredDepartments.length > 0 ? (
@@ -246,9 +254,9 @@ export default function RegisterPage() {
                   <div
                     key={dept.id}
                     onClick={() => {
-                      setSearchTerm(dept.name); // Inputa ismi yaz
-                      setFormData((prev) => ({ ...prev, departmentId: dept.id })); // ID'yi kaydet
-                      setIsDropdownOpen(false); // Listeyi kapat
+                      setSearchTerm(dept.name); 
+                      setFormData((prev) => ({ ...prev, departmentId: dept.id })); 
+                      setIsDropdownOpen(false); 
                     }}
                     className="cursor-pointer px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-zinc-700 transition-colors"
                   >
@@ -264,7 +272,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* DİNAMİK ALANLAR (Diploma No / Unvan) - AYNEN KORUNDU */}
+        {/* DİNAMİK ALANLAR (Diploma No / Unvan) */}
         {userType === "graduate" ? (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -332,7 +340,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* ŞİFRE ALANLARI - AYNEN KORUNDU */}
+        {/* ŞİFRE ALANLARI */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-sm font-medium dark:text-gray-300">Şifre</label>
