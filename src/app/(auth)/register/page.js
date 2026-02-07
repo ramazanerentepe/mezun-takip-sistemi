@@ -291,8 +291,8 @@ export default function RegisterPage() {
               <input
                 id="gradYear"
                 type="number"
-                min="1970"
-                max="2100"
+                min="2018"
+                max={new Date().getFullYear()} //güncel yıl 
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
                 placeholder="Yıl (Örn: 2023)"
                 required
