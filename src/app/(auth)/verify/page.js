@@ -1,35 +1,66 @@
-"use client"; // Client component olduğunu belirtiyoruz
+"use client";
 
-import { useState } from "react";
-import Image from "next/image"; // Logoyu göstermek için
-import Link from "next/link";   
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { verifyAction } from "@/actions/auth/verify-action";
 
 export default function VerifyPage() {
-  // 1. STATE: Kullanıcının girdiği kodu burada tutuyoruz.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // URL'den email'i al
+  const email = searchParams.get("email");
+
   const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 2. LOGIC: Butona basılınca çalışacak fonksiyon
-  const handleVerify = (e) => {
-    e.preventDefault(); // Sayfanın yenilenmesini engelle
+  // E-posta kontrolü
+  useEffect(() => {
+    if (!email) {
+      setError("E-posta bilgisi bulunamadı. Lütfen tekrar kayıt olun veya giriş yapın.");
+    }
+  }, [email]);
 
-    // Veriyi paketliyoruz
-    const packagedData = {
-      verificationCode: code
-    };
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
 
-    // Şimdilik sadece konsola yazdırıyoruz (Sorgu yok!)
-    console.log("PAKETLENEN VERİ:", packagedData);
-    alert(`Kod Paketlendi: ${code}`); // Ekranda da görelim
+    if (!email) {
+      setError("Geçersiz işlem: E-posta adresi eksik.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await verifyAction(email, code);
+
+      if (result.success) {
+        setSuccess("Doğrulama başarılı! Giriş sayfasına yönlendiriliyorsunuz...");
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("Bir hata oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    // Dış Kapsayıcı: Login sayfasıyla aynı boşluk (gap-6) yapısı
     <div className="flex flex-col gap-6">
       
       {/* --- HEADER KISMI --- */}
       <div className="flex flex-col items-center text-center gap-2">
         <div className="relative w-20 h-20 mb-2">
-          {/* Logo Login sayfasıyla aynı */}
           <Image 
             src="/logo.png" 
             alt="Kurum Logosu" 
@@ -40,10 +71,10 @@ export default function VerifyPage() {
         </div>
         
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          Konya Teknik Üniversitesi <br />Hesabınızı Doğrulayın
+          Hesabınızı Doğrulayın
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Lütfen e-posta adresinize gönderilen 6 haneli kodu giriniz.
+          <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span> adresine gönderilen kodu giriniz.
         </p>
       </div>
 
@@ -55,43 +86,56 @@ export default function VerifyPage() {
             Doğrulama Kodu
           </label>
           
-          {/* ÖZEL INPUT TASARIMI:
-             text-center: Yazı ortada başlar.
-             text-2xl: Yazı fontu büyüktür (okunabilirlik).
-             tracking-[0.5em]: Harfler arası boşluk (kod gibi durması için).
-             uppercase: Otomatik büyük harf gösterir.
-          */}
           <input
             id="code"
             name="code"
             type="text"
-            maxLength={6} // En fazla 6 karakter
+            maxLength={6}
             className="
               flex h-14 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 
-              text-center text-2xl font-bold tracking-[0.5em] uppercase
+              text-center text-2xl font-bold tracking-[0.5em] 
               placeholder:text-gray-300 placeholder:tracking-normal
               focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent 
               dark:border-zinc-700 dark:text-white
               transition-all duration-200
             "
+            // 'uppercase' sınıfını kaldırdık, böylece kullanıcı küçük harf yazdığını görebilir.
+            
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())} // Yazarken BÜYÜK harfe çevir
+            onChange={(e) => {
+              setCode(e.target.value); // .toUpperCase() KALDIRILDI. Artık olduğu gibi alıyoruz.
+              setError(""); 
+            }}
             required
             autoComplete="off"
+            disabled={isLoading}
           />
         </div>
 
-        {/* Buton - Login sayfasıyla aynı stil */}
+        {/* HATA VE BAŞARI MESAJLARI */}
+        {error && (
+          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm text-center animate-pulse">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded text-sm text-center">
+            {success}
+          </div>
+        )}
+
         <button
           type="submit"
+          disabled={isLoading || !code}
           className="
             inline-flex items-center justify-center rounded-md text-sm font-medium 
             bg-blue-600 text-white hover:bg-blue-700 
             h-10 px-4 py-2 w-full mt-2 transition-colors
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+            disabled:opacity-50 disabled:cursor-not-allowed
           "
         >
-          Doğrula
+          {isLoading ? "Kontrol Ediliyor..." : "Doğrula"}
         </button>
       </form>
 
@@ -100,7 +144,7 @@ export default function VerifyPage() {
         Kod gelmedi mi?{" "}
         <button 
           type="button"
-          onClick={() => alert("Kod tekrar gönderildi (Simülasyon)")}
+          onClick={() => alert("Kod tekrar gönderildi (Burası için ayrı fonksiyon yazılacak)")}
           className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all"
         >
           Tekrar Gönder
