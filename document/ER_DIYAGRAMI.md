@@ -1,28 +1,29 @@
+🎓 Mezun Takip Sistemi - Veritabanı Mimarisi
+Bu proje PostgreSQL üzerinde çalışır ve Prisma ORM ile yönetilir. Aşağıdaki şema, sistemdeki tabloların (User, Profile, Post vb.) birbiriyle nasıl konuştuğunu gösterir.
+
+🗺️ İlişki Diyagramı (ER Diagram)
+
 erDiagram
-%% --- İLİŞKİLER (RELATIONS) ---
-User ||--o| Profile : "Kullanıcının Profili (Opsiyonel)"
-User ||--o{ Post : "Paylaştığı Gönderiler"
-User ||--o{ Comment : "Yaptığı Yorumlar"
+%% İLİŞKİLER (Kimin eli kimin cebinde)
+User ||--o| Profile : "Kullanıcının vitrini (Tekil - Opsiyonel)"
+User ||--o{ Post : "Paylaştığı gönderiler"
+User ||--o{ Comment : "Yaptığı yorumlar"
 User ||--o{ Like : "Beğenileri"
+User ||--o{ Follows : "Takip ettikleri"
+User ||--o{ Follows : "Takipçileri"
 
-    %% Takip Sistemi (Many-to-Many / Self Relation)
-    User ||--o{ Follows : "Takip Ettikleri"
-    User ||--o{ Follows : "Takipçileri"
+    Post ||--o{ Comment : "Gönderiye gelen yorumlar"
+    Post ||--o{ Like : "Gönderiye gelen beğeniler"
 
-    %% Gönderi Etkileşimleri
-    Post ||--o{ Comment : "Gönderiye Gelen Yorumlar"
-    Post ||--o{ Like : "Gönderiye Gelen Beğeniler"
+    Profile ||--o{ Experience : "İş deneyimleri"
+    Profile ||--o{ Education : "Eğitim geçmişi"
+    Profile }o--o{ Skill : "Yetenekleri (Çoka-Çok)"
 
-    %% Profil Detayları
-    Profile ||--o{ Experience : "İş Deneyimleri"
-    Profile ||--o{ Education : "Eğitim Bilgileri"
-    Profile }o--o{ Skill : "Yetenekler (Çoka-Çok)"
-
-    %% --- TABLO DETAYLARI (ENTITIES) ---
+    %% TABLO DETAYLARI
     User {
         String id PK
         String email UK
-        String password "Hashli Şifre"
+        String password "Hashli"
         Role role "SUPER_ADMIN, ADMIN, ACADEMIC, GRADUATE"
         Boolean isEmailVerified "1. Aşama: E-posta Onayı"
         Boolean isAdminApproved "2. Aşama: Yönetici Onayı"
@@ -37,8 +38,8 @@ User ||--o{ Like : "Beğenileri"
         String lastName
         String bio "Biyografi"
         String location "Konum"
-        String academicTitle "Akademisyen Unvanı (Prof. Dr.)"
-        Int graduationYear "Mezuniyet Yılı"
+        String academicTitle "Sadece Hocalarda (Prof. Dr.)"
+        Int graduationYear "Sadece Mezunlarda"
         String linkedin "Sosyal Medya"
         String github "Sosyal Medya"
         String website "Kişisel Site"
@@ -47,23 +48,24 @@ User ||--o{ Like : "Beğenileri"
     Post {
         String id PK
         String authorId FK "Yazar"
-        String content "İçerik Metni"
-        String imageUrl "Görsel (Opsiyonel)"
+        String content "İçerik"
+        String imageUrl "Resim (Opsiyonel)"
         DateTime createdAt
     }
 
     Comment {
         String id PK
-        String content "Yorum Metni"
-        String postId FK "Hangi Gönderi?"
+        String content "Yorum"
+        String postId FK "Hangi Post?"
         String authorId FK "Kim Yazdı?"
+        DateTime createdAt
     }
 
     Like {
         String id PK
-        String postId FK "Beğenilen Gönderi"
+        String postId FK "Beğenilen Post"
         String userId FK "Beğenen Kişi"
-        Note "Bir kişi bir postu bir kez beğenebilir (Unique)"
+        DateTime createdAt
     }
 
     Follows {
@@ -75,21 +77,24 @@ User ||--o{ Like : "Beğenileri"
     Experience {
         String id PK
         String profileId FK
-        String title "Pozisyon / Unvan"
-        String company "Şirket Adı"
-        DateTime startDate "Başlangıç"
-        DateTime endDate "Bitiş"
+        String title "Pozisyon"
+        String company "Şirket"
+        String location "Konum"
+        DateTime startDate
+        DateTime endDate
     }
 
     Education {
         String id PK
         String profileId FK
-        String school "Okul Adı"
-        String degree "Derece (Lisans vb.)"
-        String field "Bölüm / Alan"
+        String school "Okul"
+        String degree "Derece (Lisans)"
+        String field "Bölüm"
+        DateTime startDate
+        DateTime endDate
     }
 
     Skill {
         String id PK
-        String name UK "Yetenek Adı (Java, React vb.)"
+        String name UK "Yetenek Adı"
     }
