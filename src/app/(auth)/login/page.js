@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * @fileoverview Login Page Component
- * Kullanıcı kimlik doğrulama işlemlerini yönetir.
- * Başarılı girişte kullanıcıyı bekletmeden direkt ana sayfaya yönlendirir.
- */
-
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,15 +8,9 @@ import { loginAction } from "@/actions/auth/login-action";
 
 export default function LoginPage() {
   const router = useRouter();
-  
-  // Sadece loading ve error durumlarını tutuyoruz. 
-  // (Success mesajına gerek kalmadı çünkü direkt yönlenecek)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /**
-   * Form gönderimini ele alan fonksiyon.
-   */
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -33,13 +21,10 @@ export default function LoginPage() {
       const result = await loginAction(formData);
 
       if (result.success) {
-        // --- DEĞİŞİKLİK BURADA ---
-        // Başarı mesajı göstermek yerine direkt yönlendiriyoruz.
-        // Router işlemi hızlıdır ama yine de butonu kilitli (loading) tutuyoruz.
         router.push("/feed"); 
       } else {
         setError(result.message);
-        setLoading(false); // Hata varsa kilidi aç
+        setLoading(false); 
       }
     } catch (err) {
       console.error("Login Error:", err);
@@ -68,8 +53,6 @@ export default function LoginPage() {
           Mezun Takip Sistemine giriş yapmak için bilgilerinizi girin.
         </p>
       </div>
-
-      {/* --- SADECE Hata Mesajı (Başarı mesajı kaldırıldı) --- */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-sm" role="alert">
           {error}

@@ -5,107 +5,76 @@ import bcrypt from "bcryptjs";
 import { sendMail } from "@/lib/send-mail"; 
 
 const prisma = new PrismaClient();
-
-const SALT_ROUNDS = 10; //hash derecesi
-
-//Üniversite veri tabanı diploma no isim soyisim sorgusu Devamlı true döner ilerde erişim gelince düzelt.
-async function verifyWithExternalDatabase(diplomaNo, name, surname , graduationYear) {
-      return { valid: true };
-}
+const SALT_ROUNDS = 10; // Hash derecesi 
 
 export async function registerAction(data) {
   try {
-    // A. AKADEMİSYEN ENGELİ (Şimdilik)
-    if (data.userRole === "ACADEMIC") {
-      return {
-        success: false,
-        message: "Akademisyen kayıtları şu anda sadece Yönetici onayı ile veya manuel olarak yapılmaktadır. Lütfen bölüm sekreterliği ile iletişime geçiniz."
-      };
-    }
-
-    // B. DIŞ VERİ TABANI DOĞRULAMASI (Sadece Mezunlar için)
-    if (data.userRole === "GRADUATE") {
-      const externalCheck = await verifyWithExternalDatabase(
-        data.diplomaNo, 
-        data.firstName, 
-        data.lastName,
-        data.graduationYear
-      );
-
-      if (!externalCheck.valid) {
-        return { success: false, message: externalCheck.message };
-      }
-    }
-
-    // C. İÇ VERİ TABANI KONTROLÜ (Mükerrer Kayıt)
-    // Mail veya Diploma No daha önce kullanılmış mı?
-    const existingUser = await prisma.user.findFirst({
+    // 1. Mükerrer Kayıt Kontrolü (Sadece E-posta)
+    const existingUser = await prisma.user.findUnique({
       where: {
-        OR: [
-          { email: data.email },
-          { diplomaNo: data.diplomaNo } // null ise sorun olmaz, Prisma bunu yönetir
-        ]
+        email: data.email,
       }
     });
 
     if (existingUser) {
-      if (existingUser.email === data.email) {
-        return { success: false, message: "Bu e-posta adresi zaten kayıtlı." };
-      }
-      if (existingUser.diplomaNo === data.diplomaNo) {
-        return { success: false, message: "Bu diploma numarası ile daha önce kayıt olunmuş." };
-      }
+      return { success: false, message: "Bu e-posta adresi zaten kayıtlı." };
     }
 
-    // D. ŞİFRELEME VE KOD ÜRETME
+    // 2. Şifreleme 
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-    // 6 haneli doğrulama kodu
+
+    // 3. Doğrulama Kodu Üretme (6 haneli)
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let verificationCode = '';
-    
-    // 6 kere dönüp havuzdan rastgele bir karakter seçiyoruz
     for (let i = 0; i < 6; i++) {
       verificationCode += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    // Kod geçerlilik süresi (Örn: 15 dakika sonrası)
-    const codeExpiry = new Date(Date.now() + 15 * 60 * 1000); 
+    const codeExpiry = new Date(Date.now() + 3 * 60 * 1000); // 3 dakika geçerli
 
-    // E. KAYIT İŞLEMİ (User + Profile)
-    // Prisma'da iç içe yazarak transaction bütünlüğü sağlarız.
+    // 4. Veritabanına Kayıt
     await prisma.user.create({
       data: {
         email: data.email,
         password: hashedPassword,
-        role: "GRADUATE",
-        isVerified: false, // Henüz doğrulanmadı
-        departmentId: data.departmentId,
-        diplomaNo: data.diplomaNo,
+        role: data.userRole, 
+        
+        // --- ÇİFT AŞAMALI ONAY SİSTEMİ ---
+        isEmailVerified: false, // 1. Aşama: E-posta onayı bekliyor
+        isAdminApproved: false, // 2. Aşama: Admin onayı bekliyor
+        
         verificationCode: verificationCode,
         verificationCodeExpiry: codeExpiry,
         
-        // Kullanıcı ile birlikte boş profilini de oluşturalım
+        // İlişkili Profil Tablosunu Oluşturma
         profile: {
           create: {
             firstName: data.firstName,
             lastName: data.lastName,
-            graduationYear: data.graduationYear,
-            // Diğer alanlar null kalabilir şimdilik
+            // Eğer Mezun ise mezuniyet yılını ekle
+            ...(data.userRole === "GRADUATE" && {
+                graduationYear: data.graduationYear 
+            }),
+            // Eğer Akademisyen ise unvanı ekle
+            ...(data.userRole === "ACADEMIC" && {
+                academicTitle: data.academicTitle
+            })
           }
         }
       }
     });
 
-    // F. DOĞRULAMA MAİLİ GÖNDERME
+    // 5. Doğrulama Maili Gönderme
     await sendMail({
       to: data.email,
-      subject: "Mezun Takip Sistemi - Doğrulama Kodu",
+      subject: "Mezun Takip Sistemi - E-posta Doğrulama",
       html: `
-        <h3>Aramıza Hoş Geldin, ${data.firstName}!</h3>
-        <p>Kaydını tamamlamak için doğrulama kodun aşağıdadır:</p>
+        <h3>Hoş Geldiniz, ${data.firstName} ${data.lastName}</h3>
+        <p>Kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekmektedir.</p>
+        <p>Doğrulama kodunuz:</p>
         <h1 style="color: #2563EB; letter-spacing: 5px;">${verificationCode}</h1>
-        <p>Bu kod 15 dakika boyunca geçerlidir.</p>
+        <p><strong>Bilgilendirme:</strong> E-postanızı doğruladıktan sonra hesabınız <u>yönetici onayına</u> düşecektir. Yöneticiler tarafından onaylandıktan sonra giriş yapabilirsiniz.</p>
         <br>
-        <p>İyi günler dileriz.</p>
+        <p>Bu kod 3 dakika süreyle geçerlidir.</p>
       `
     });
 
@@ -116,6 +85,6 @@ export async function registerAction(data) {
 
   } catch (error) {
     console.error("Kayıt Hatası:", error);
-    return { success: false, message: "Sunucu tarafında bir hata oluştu." };
+    return { success: false, message: "Sunucu hatası oluştu. Lütfen daha sonra tekrar deneyiniz." };
   }
 }

@@ -6,59 +6,119 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyAction } from "@/actions/auth/verify-action";
 
+// Sabitler
+const OTP_DURATION_SECONDS = 180; // 3 Dakika
+
 export default function VerifyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // URL'den email'i al
   const email = searchParams.get("email");
 
+  // State Yönetimi
   const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(OTP_DURATION_SECONDS);
+  const [isClient, setIsClient] = useState(false);
+  const [status, setStatus] = useState({ loading: false, error: "", success: "" });
 
-  // E-posta kontrolü
+  /**
+   * Sayaç Yönetimi (Timer Logic)
+   * Sayfa yenilendiğinde veri kaybını önlemek için bitiş süresi localStorage'da tutulur.
+   */
+  useEffect(() => {
+    setIsClient(true);
+    if (!email) return;
+
+    const storageKey = `verify_expiry_${email}`;
+    let expiryTime = localStorage.getItem(storageKey);
+
+    // Eğer kayıtlı süre yoksa veya süre geçmişse yeni bitiş zamanı belirle
+    if (!expiryTime) {
+      expiryTime = Date.now() + OTP_DURATION_SECONDS * 1000;
+      localStorage.setItem(storageKey, expiryTime);
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
+      setTimeLeft(remaining);
+    };
+
+    updateTimer(); // İlk hesaplama
+    const intervalId = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(intervalId); // Cleanup
+  }, [email]);
+
+  // E-posta parametre kontrolü
   useEffect(() => {
     if (!email) {
-      setError("E-posta bilgisi bulunamadı. Lütfen tekrar kayıt olun veya giriş yapın.");
+      setStatus(prev => ({ ...prev, error: "E-posta bilgisi eksik. Lütfen tekrar giriş yapın." }));
     }
   }, [email]);
 
+  // Yardımcı Fonksiyon: Saniyeyi MM:SS formatına çevirir
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  /**
+   * Kodu Yeniden Gönder
+   * Sayacı ve localStorage verisini sıfırlar.
+   */
+  const handleResendCode = () => {
+    // TODO: Backend 'resend-code' servisine bağlanacak.
+    alert("Kod tekrar gönderildi!");
+    
+    const newExpiryTime = Date.now() + OTP_DURATION_SECONDS * 1000;
+    localStorage.setItem(`verify_expiry_${email}`, newExpiryTime);
+    
+    setTimeLeft(OTP_DURATION_SECONDS);
+    setStatus({ loading: false, error: "", success: "" });
+  };
+
+  /**
+   * Doğrulama İşlemi
+   */
   const handleVerify = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setStatus({ loading: false, error: "", success: "" });
 
-    if (!email) {
-      setError("Geçersiz işlem: E-posta adresi eksik.");
+    if (timeLeft === 0) {
+      setStatus(prev => ({ ...prev, error: "Süre doldu. Lütfen kodu tekrar isteyin." }));
       return;
     }
 
-    setIsLoading(true);
+    if (!email) {
+      setStatus(prev => ({ ...prev, error: "Geçersiz işlem: E-posta eksik." }));
+      return;
+    }
+
+    setStatus(prev => ({ ...prev, loading: true }));
 
     try {
       const result = await verifyAction(email, code);
 
       if (result.success) {
-        setSuccess("Doğrulama başarılı! Giriş sayfasına yönlendiriliyorsunuz...");
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+        setStatus(prev => ({ ...prev, success: "Doğrulama başarılı! Yönlendiriliyorsunuz..." }));
+        localStorage.removeItem(`verify_expiry_${email}`); // Temizlik
+        
+        setTimeout(() => router.push("/login"), 2000);
       } else {
-        setError(result.message);
+        setStatus(prev => ({ ...prev, error: result.message }));
       }
     } catch (err) {
-      setError("Bir hata oluştu. Lütfen tekrar deneyin.");
+      setStatus(prev => ({ ...prev, error: "Sunucu hatası oluştu." }));
     } finally {
-      setIsLoading(false);
+      setStatus(prev => ({ ...prev, loading: false }));
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
       
-      {/* --- HEADER KISMI --- */}
+      {/* Header Section */}
       <div className="flex flex-col items-center text-center gap-2">
         <div className="relative w-20 h-20 mb-2">
           <Image 
@@ -73,14 +133,16 @@ export default function VerifyPage() {
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
           Hesabınızı Doğrulayın
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          <span className="font-semibold text-gray-800 dark:text-gray-200">{email}</span> adresine gönderilen kodu giriniz.
-        </p>
+
+        {isClient && (
+          <div className={`text-sm font-medium transition-colors ${timeLeft < 60 ? 'text-red-600 animate-pulse' : 'text-blue-600'}`}>
+            Kalan Süre: {formatTime(timeLeft)}
+          </div>
+        )}
       </div>
 
-      {/* --- FORM KISMI --- */}
+      {/* Verification Form */}
       <form onSubmit={handleVerify} className="flex flex-col gap-4">
-        
         <div className="space-y-1">
           <label className="text-sm font-medium dark:text-gray-300" htmlFor="code">
             Doğrulama Kodu
@@ -99,34 +161,32 @@ export default function VerifyPage() {
               dark:border-zinc-700 dark:text-white
               transition-all duration-200
             "
-            // 'uppercase' sınıfını kaldırdık, böylece kullanıcı küçük harf yazdığını görebilir.
-            
             value={code}
             onChange={(e) => {
-              setCode(e.target.value); // .toUpperCase() KALDIRILDI. Artık olduğu gibi alıyoruz.
-              setError(""); 
+              setCode(e.target.value); 
+              setStatus(prev => ({ ...prev, error: "" })); 
             }}
             required
             autoComplete="off"
-            disabled={isLoading}
+            disabled={status.loading || timeLeft === 0} 
           />
         </div>
 
-        {/* HATA VE BAŞARI MESAJLARI */}
-        {error && (
+        {/* Status Messages */}
+        {status.error && (
           <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm text-center animate-pulse">
-            {error}
+            {status.error}
           </div>
         )}
-        {success && (
+        {status.success && (
           <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded text-sm text-center">
-            {success}
+            {status.success}
           </div>
         )}
 
         <button
           type="submit"
-          disabled={isLoading || !code}
+          disabled={status.loading || !code || timeLeft === 0} 
           className="
             inline-flex items-center justify-center rounded-md text-sm font-medium 
             bg-blue-600 text-white hover:bg-blue-700 
@@ -135,16 +195,16 @@ export default function VerifyPage() {
             disabled:opacity-50 disabled:cursor-not-allowed
           "
         >
-          {isLoading ? "Kontrol Ediliyor..." : "Doğrula"}
+          {status.loading ? "Kontrol Ediliyor..." : timeLeft === 0 ? "Süre Doldu" : "Doğrula"}
         </button>
       </form>
 
-      {/* --- FOOTER KISMI --- */}
+      {/* Footer Section */}
       <div className="text-center text-sm text-gray-500 dark:text-gray-400">
         Kod gelmedi mi?{" "}
         <button 
           type="button"
-          onClick={() => alert("Kod tekrar gönderildi (Burası için ayrı fonksiyon yazılacak)")}
+          onClick={handleResendCode}
           className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all"
         >
           Tekrar Gönder

@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getDepartmentsAction } from "@/actions/department/get-departments-action";
-// --- EKLENDİ: Backend Kayıt Fonksiyonu ---
+// Bölüm çekme fonksiyonu artık gerekmiyor
 import { registerAction } from "@/actions/auth/register-action"; 
 
 const ACADEMIC_TITLES = [
@@ -19,47 +18,23 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Bölüm Verisi State'i
-  const [departments, setDepartments] = useState([]); 
-
   // ARAMA STATE'LERİ
-  const [searchTerm, setSearchTerm] = useState(""); 
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); 
-  const dropdownRef = useRef(null);
-
   const [titleSearchTerm, setTitleSearchTerm] = useState(""); 
   const [isTitleDropdownOpen, setIsTitleDropdownOpen] = useState(false); 
   const titleDropdownRef = useRef(null);
 
-  // FORM VERİLERİ
+  // FORM VERİLERİ 
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
     email: "",
-    departmentId: "",
     password: "",        
     confirmPassword: "", 
-    diplomaNo: "", 
     gradYear: "",  
     title: "",     
   });
 
-  // Sayfa açılınca bölümleri çek
-  useEffect(() => {
-    async function loadDepartments() {
-      const result = await getDepartmentsAction();
-      if (result.success) {
-        setDepartments(result.data);
-      }
-    }
-    loadDepartments();
-  }, []);
-
   // Filtrelemeler
-  const filteredDepartments = departments.filter((dept) =>
-    dept.name.toLocaleLowerCase('tr').includes(searchTerm.toLocaleLowerCase('tr'))
-  );
-
   const filteredTitles = ACADEMIC_TITLES.filter((title) =>
     title.toLocaleLowerCase('tr').includes(titleSearchTerm.toLocaleLowerCase('tr'))
   );
@@ -67,9 +42,6 @@ export default function RegisterPage() {
   // Dışarı tıklama kontrolü
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
       if (titleDropdownRef.current && !titleDropdownRef.current.contains(event.target)) {
         setIsTitleDropdownOpen(false);
       }
@@ -97,10 +69,8 @@ export default function RegisterPage() {
       setError("HATA: Şifre en az 6 karakter olmalıdır.");
       return;
     }
-    if (!formData.departmentId) {
-      setError("HATA: Lütfen listeden geçerli bir bölüm seçiniz.");
-      return;
-    }
+    
+    // Akademisyen seçiliyse unvan zorunlu
     if (userType === "academician" && !formData.title) {
       setError("HATA: Lütfen unvanınızı seçiniz.");
       return;
@@ -108,17 +78,15 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
+    // Payload sadeleştirildi
     const registerPayload = {
       userRole: userType === "graduate" ? "GRADUATE" : "ACADEMIC",
       firstName: formData.name,
       lastName: formData.surname,
       email: formData.email,
-      departmentId: formData.departmentId, 
       password: formData.password,
       
       ...(userType === "graduate" && {
-        diplomaNo: formData.diplomaNo,
-        // Backend int beklediği için dönüşüm yapıyoruz
         graduationYear: parseInt(formData.gradYear),
       }),
       ...(userType === "academician" && {
@@ -127,18 +95,11 @@ export default function RegisterPage() {
     };
 
     try {
-      // Backend fonksiyonunu çağırıyoruz
       const result = await registerAction(registerPayload);
 
       if (result.success) {
-        // --- YÖNLENDİRME MANTIĞI ---
-        if (userType === "graduate") {
-          // Mezunlar kod doğrulamaya gider (Maili de taşıyoruz)
-          router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
-        } else {
-          // Akademisyenler girişe gider (Şu an backend kapalı ama mantık bu)
-          router.push("/login");
-        }
+        // Her iki rol de önce e-posta doğrulamaya gider
+        router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
       } else {
         setError(result.message);
       }
@@ -224,81 +185,26 @@ export default function RegisterPage() {
             id="email"
             type="email"
             className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
-            placeholder={userType === "graduate" ? "ogrenci@ktun.edu.tr" : "akademisyen@ktun.edu.tr"}
+            placeholder={userType === "graduate" ? "E-posta Adresi" : "E-posta Adresi"}
             required
             onChange={handleChange}
           />
         </div>
 
-        {/* AKILLI BÖLÜM KUTUSU */}
-        <div className="space-y-1 relative" ref={dropdownRef}>
-          <label className="text-sm font-medium dark:text-gray-300">Bölümünüz</label>
-          <input
-            type="text"
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white placeholder:text-gray-400"
-            placeholder="Bölüm"
-            value={searchTerm}
-            required
-            onFocus={() => setIsDropdownOpen(true)}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setIsDropdownOpen(true);
-              setFormData((prev) => ({ ...prev, departmentId: "" })); 
-            }}
-          />
-          
-          {isDropdownOpen && (
-            <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-              {filteredDepartments.length > 0 ? (
-                filteredDepartments.map((dept) => (
-                  <div
-                    key={dept.id}
-                    onClick={() => {
-                      setSearchTerm(dept.name); 
-                      setFormData((prev) => ({ ...prev, departmentId: dept.id })); 
-                      setIsDropdownOpen(false); 
-                    }}
-                    className="cursor-pointer px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    {dept.name}
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                  {departments.length === 0 ? "Bölümler yükleniyor..." : "Sonuç bulunamadı."}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* DİNAMİK ALANLAR (Diploma No / Unvan) */}
+        {/* DİNAMİK ALANLAR  */}
         {userType === "graduate" ? (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium dark:text-gray-300">Diploma No</label>
-              <input
-                id="diplomaNo"
-                type="text"
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
-                placeholder="Diploma No" 
-                required
-                onChange={handleChange}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium dark:text-gray-300">Mezuniyet Yılı</label>
-              <input
-                id="gradYear"
-                type="number"
-                min="2018"
-                max={new Date().getFullYear()} //güncel yıl 
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
-                placeholder="Yıl (Örn: 2023)"
-                required
-                onChange={handleChange}
-              />
-            </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium dark:text-gray-300">Mezuniyet Yılı</label>
+            <input
+              id="gradYear"
+              type="number"
+              min="2010"
+              max={new Date().getFullYear()} 
+              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              placeholder="Yıl"
+              required
+              onChange={handleChange}
+            />
           </div>
         ) : (
           <div className="space-y-1 relative" ref={titleDropdownRef}>
@@ -306,7 +212,7 @@ export default function RegisterPage() {
             <input
               type="text"
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white placeholder:text-gray-400"
-              placeholder="Unvan"
+              placeholder="Unvan Seçiniz"
               value={titleSearchTerm}
               required
               onChange={(e) => {

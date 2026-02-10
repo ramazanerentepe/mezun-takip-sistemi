@@ -1,42 +1,30 @@
-# 🎓 Mezun Takip Sistemi - Veritabanı Mimarisi
-
-Bu proje **PostgreSQL** üzerinde çalışır ve **Prisma ORM** ile yönetilir. Aşağıdaki şema, sistemdeki tabloların (User, Department, Post vb.) birbiriyle nasıl konuştuğunu gösterir.
-
-### 🗺️ İlişki Diyagramı (ER Diagram)
-
-```mermaid
 erDiagram
-    %% İLİŞKİLER (Kimin eli kimin cebinde)
-    Department ||--o{ User : "Bölümün öğrencileri/hocaları"
-    User ||--|| Profile : "Kullanıcının vitrini (Tekil)"
-    User ||--o{ Post : "Paylaştığı gönderiler"
-    User ||--o{ Comment : "Yaptığı yorumlar"
-    User ||--o{ Like : "Beğenileri"
-    User ||--o{ Follows : "Takip ettikleri"
-    User ||--o{ Follows : "Takipçileri"
+%% İLİŞKİLER
+User ||--|| Profile : "1:1 İlişki"
+User ||--o{ Post : "Yazar"
+User ||--o{ Comment : "Yorum yapar"
+User ||--o{ Like : "Beğenir"
+User ||--o{ Follows : "Takipçi (follower)"
+User ||--o{ Follows : "Takip edilen (following)"
 
-    Post ||--o{ Comment : "Gönderiye gelen yorumlar"
-    Post ||--o{ Like : "Gönderiye gelen beğeniler"
+    Post ||--o{ Comment : "İçerir"
+    Post ||--o{ Like : "Alır"
 
-    Profile ||--o{ Experience : "İş deneyimleri"
-    Profile ||--o{ Education : "Eğitim geçmişi"
-    Profile }o--o{ Skill : "Yetenekleri"
+    Profile ||--o{ Experience : "Deneyimler"
+    Profile ||--o{ Education : "Eğitimler"
+    Profile }o--o{ Skill : "n:m Yetenekler"
 
     %% TABLO DETAYLARI
-    Department {
-        String id PK
-        String name "Örn: Bilgisayar Müh."
-    }
-
     User {
         String id PK
-        String email
-        String password "Hashli"
-        Role role "ADMIN, ACADEMIC, GRADUATE"
-        Boolean isVerified "Onaylı mı?"
-        String verificationCode "Doğrulama Kodu (OTP)"
-        DateTime verificationCodeExpiry "Kodun Son Kullanma Tarihi"
-        String departmentId FK "Bağlı olduğu bölüm"
+        String email UK
+        String password
+        Role role "GRADUATE, ACADEMIC, ADMIN, SUPER_ADMIN"
+        Boolean isEmailVerified "E-posta Onayı"
+        String verificationCode
+        DateTime verificationCodeExpiry
+        Boolean isAdminApproved "Admin Manuel Onayı"
+        DateTime createdAt
     }
 
     Profile {
@@ -44,19 +32,66 @@ erDiagram
         String userId FK
         String firstName
         String lastName
-        String diplomaNo "Sadece Mezunlarda"
-        String academicTitle "Sadece Hocalarda (Prof. Dr.)"
+        String bio
+        String avatarUrl
+        String location
+        String academicTitle
+        Int graduationYear
+        String linkedin
+        String github
+        String website
     }
 
     Post {
         String id PK
-        String content "İçerik"
-        String imageUrl "Resim (Opsiyonel)"
+        String authorId FK
+        String content
+        String imageUrl
         DateTime createdAt
     }
 
-    Follows {
-        String followerId FK "Takip Eden"
-        String followingId FK "Takip Edilen"
+    Comment {
+        String id PK
+        String content
+        String postId FK
+        String authorId FK
+        DateTime createdAt
     }
-```
+
+    Like {
+        String id PK
+        String postId FK
+        String userId FK
+        DateTime createdAt
+    }
+
+    Experience {
+        String id PK
+        String profileId FK
+        String title
+        String company
+        String location
+        DateTime startDate
+        DateTime endDate
+    }
+
+    Education {
+        String id PK
+        String profileId FK
+        String school
+        String degree
+        String field
+        DateTime startDate
+        DateTime endDate
+    }
+
+    Skill {
+        String id PK
+        String name UK
+    }
+
+    Follows {
+        String followerId PK, FK
+        String followingId PK, FK
+        DateTime createdAt
+    }

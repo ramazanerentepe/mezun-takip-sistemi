@@ -8,30 +8,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 2. Bölümler (Bilgisayar Müh, Makine Müh vb.)
-model Department {
-  id    String @id @default(uuid())
-  name  String @unique // Örn: "Bilgisayar Mühendisliği"
-  users User[] // Bu bölümde okuyanlar/çalışanlar
-}
-
-// 3. Kullanıcı Modeli
+// 2. Kullanıcı Modeli
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  password   String
-  role       Role     @default(GRADUATE)
-  isVerified Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  role     Role   @default(GRADUATE)
 
-  //Doğrulama kodu
-  diplomaNo              String?   @unique // Mezunlar için
-  verificationCode       String? // 6 haneli kod buraya gelecek
-  verificationCodeExpiry DateTime? // Kodun son kullanma tarihi
+  createdAt DateTime @default(now())
 
-  // Kullanıcının Bölümü (Süper Admin hariç herkesin bölümü olmalı)
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
+  // --- ÇİFT AŞAMALI DOĞRULAMA ---
+
+  // Aşama 1: E-posta Doğrulama (Otomatik)
+  isEmailVerified        Boolean   @default(false)
+  verificationCode       String?
+  verificationCodeExpiry DateTime?
+
+  // Aşama 2: Admin Onayı (Manuel)
+  // E-postasını doğrulasa bile Admin "true" yapmadan giremez.
+  isAdminApproved Boolean @default(false)
 
   // İlişkiler
   profile    Profile?
@@ -42,15 +37,15 @@ model User {
   followedBy Follows[] @relation("following") // Beni takip edenler
 }
 
-// Rolleri Güncelledik
+// Roller (Değişmedi)
 enum Role {
-  SUPER_ADMIN // Rektör (Her yere erişir)
-  ADMIN // Bölüm Admini (Sadece kendi bölümünü yönetir)
+  SUPER_ADMIN // Tam yetki
+  ADMIN // Yönetici
   ACADEMIC // Akademisyen
   GRADUATE // Mezun/Öğrenci
 }
 
-// 4. Profil Detayları
+// 3. Profil Detayları 
 model Profile {
   id     String @id @default(uuid())
   userId String @unique
@@ -63,8 +58,7 @@ model Profile {
   location  String?
 
   // Özel Alanlar
-
-  academicTitle  String? // Akademisyenler için (Prof. Dr.)
+  academicTitle  String?
   graduationYear Int?
 
   // Sosyal Medya
@@ -77,14 +71,14 @@ model Profile {
   skills      Skill[]
 }
 
-// 5. Yetenekler
+// 4. Yetenekler
 model Skill {
   id       String    @id @default(uuid())
   name     String    @unique
   profiles Profile[]
 }
 
-// 6. İş Deneyimi
+// 5. İş Deneyimi
 model Experience {
   id        String  @id @default(uuid())
   profileId String
@@ -98,7 +92,7 @@ model Experience {
   description String?
 }
 
-// 7. Eğitim Bilgileri
+// 6. Eğitim Bilgileri
 model Education {
   id        String  @id @default(uuid())
   profileId String
@@ -111,7 +105,7 @@ model Education {
   endDate   DateTime?
 }
 
-// 8. Gönderiler
+// 7. Gönderiler
 model Post {
   id       String @id @default(uuid())
   authorId String
@@ -125,7 +119,7 @@ model Post {
   likes    Like[]
 }
 
-// 9. Yorumlar
+// 8. Yorumlar
 model Comment {
   id        String   @id @default(uuid())
   content   String
@@ -138,7 +132,7 @@ model Comment {
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
-// 10. Beğeniler
+// 9. Beğeniler
 model Like {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
@@ -150,7 +144,7 @@ model Like {
   @@unique([postId, userId])
 }
 
-// 11. Takipler
+// 10. Takipler
 model Follows {
   follower   User   @relation("follower", fields: [followerId], references: [id])
   followerId String
@@ -160,6 +154,5 @@ model Follows {
 
   createdAt DateTime @default(now())
 
-  // Bir kişi aynı kişiyi iki kere takip edemesin diye özel kural:
   @@id([followerId, followingId])
 }
