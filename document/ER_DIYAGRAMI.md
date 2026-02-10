@@ -1,31 +1,16 @@
 erDiagram
-%% İLİŞKİLER
-User ||--|| Profile : "1:1 İlişki"
-User ||--o{ Post : "Yazar"
-User ||--o{ Comment : "Yorum yapar"
-User ||--o{ Like : "Beğenir"
-User ||--o{ Follows : "Takipçi (follower)"
-User ||--o{ Follows : "Takip edilen (following)"
-
-    Post ||--o{ Comment : "İçerir"
-    Post ||--o{ Like : "Alır"
-
-    Profile ||--o{ Experience : "Deneyimler"
-    Profile ||--o{ Education : "Eğitimler"
-    Profile }o--o{ Skill : "n:m Yetenekler"
-
-    %% TABLO DETAYLARI
-    User {
-        String id PK
-        String email UK
-        String password
-        Role role "GRADUATE, ACADEMIC, ADMIN, SUPER_ADMIN"
-        Boolean isEmailVerified "E-posta Onayı"
-        String verificationCode
-        DateTime verificationCodeExpiry
-        Boolean isAdminApproved "Admin Manuel Onayı"
-        DateTime createdAt
-    }
+%% KULLANICI VE PROFİL
+User {
+String id PK
+String email UK
+String password
+Role role "ENUM: SUPER_ADMIN, ADMIN, ACADEMIC, GRADUATE"
+Boolean isEmailVerified
+String verificationCode
+DateTime verificationCodeExpiry
+Boolean isAdminApproved
+DateTime createdAt
+}
 
     Profile {
         String id PK
@@ -42,6 +27,7 @@ User ||--o{ Follows : "Takip edilen (following)"
         String website
     }
 
+    %% İÇERİK MODELLERİ
     Post {
         String id PK
         String authorId FK
@@ -53,18 +39,26 @@ User ||--o{ Follows : "Takip edilen (following)"
     Comment {
         String id PK
         String content
+        DateTime createdAt
         String postId FK
         String authorId FK
-        DateTime createdAt
     }
 
     Like {
         String id PK
+        DateTime createdAt
         String postId FK
         String userId FK
+    }
+
+    %% İLİŞKİ TABLOLARI
+    Follows {
+        String followerId FK "Takip Eden"
+        String followingId FK "Takip Edilen"
         DateTime createdAt
     }
 
+    %% PROFİL DETAYLARI
     Experience {
         String id PK
         String profileId FK
@@ -73,6 +67,7 @@ User ||--o{ Follows : "Takip edilen (following)"
         String location
         DateTime startDate
         DateTime endDate
+        String description
     }
 
     Education {
@@ -90,8 +85,16 @@ User ||--o{ Follows : "Takip edilen (following)"
         String name UK
     }
 
-    Follows {
-        String followerId PK, FK
-        String followingId PK, FK
-        DateTime createdAt
-    }
+    %% İLİŞKİLER (RELATIONS)
+    User ||--o| Profile : "1-1 (Opsiyonel)"
+    User ||--o{ Post : "yazar"
+    User ||--o{ Comment : "yorumlar"
+    User ||--o{ Like : "beğenir"
+    User ||--o{ Follows : "takip eder/edilir"
+
+    Profile ||--o{ Experience : "deneyimleri"
+    Profile ||--o{ Education : "eğitimleri"
+    Profile }o--o{ Skill : "yetenekleri (M-N)"
+
+    Post ||--o{ Comment : "içerir"
+    Post ||--o{ Like : "içerir"
