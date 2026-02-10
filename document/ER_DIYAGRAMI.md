@@ -1,100 +1,95 @@
 erDiagram
-%% KULLANICI VE PROFİL
-User {
-String id PK
-String email UK
-String password
-Role role "ENUM: SUPER_ADMIN, ADMIN, ACADEMIC, GRADUATE"
-Boolean isEmailVerified
-String verificationCode
-DateTime verificationCodeExpiry
-Boolean isAdminApproved
-DateTime createdAt
-}
+%% --- İLİŞKİLER (RELATIONS) ---
+User ||--o| Profile : "Kullanıcının Profili (Opsiyonel)"
+User ||--o{ Post : "Paylaştığı Gönderiler"
+User ||--o{ Comment : "Yaptığı Yorumlar"
+User ||--o{ Like : "Beğenileri"
+
+    %% Takip Sistemi (Many-to-Many / Self Relation)
+    User ||--o{ Follows : "Takip Ettikleri"
+    User ||--o{ Follows : "Takipçileri"
+
+    %% Gönderi Etkileşimleri
+    Post ||--o{ Comment : "Gönderiye Gelen Yorumlar"
+    Post ||--o{ Like : "Gönderiye Gelen Beğeniler"
+
+    %% Profil Detayları
+    Profile ||--o{ Experience : "İş Deneyimleri"
+    Profile ||--o{ Education : "Eğitim Bilgileri"
+    Profile }o--o{ Skill : "Yetenekler (Çoka-Çok)"
+
+    %% --- TABLO DETAYLARI (ENTITIES) ---
+    User {
+        String id PK
+        String email UK
+        String password "Hashli Şifre"
+        Role role "SUPER_ADMIN, ADMIN, ACADEMIC, GRADUATE"
+        Boolean isEmailVerified "1. Aşama: E-posta Onayı"
+        Boolean isAdminApproved "2. Aşama: Yönetici Onayı"
+        String verificationCode "Onay Kodu"
+        DateTime createdAt
+    }
 
     Profile {
         String id PK
-        String userId FK
+        String userId FK "Hangi Kullanıcı?"
         String firstName
         String lastName
-        String bio
-        String avatarUrl
-        String location
-        String academicTitle
-        Int graduationYear
-        String linkedin
-        String github
-        String website
+        String bio "Biyografi"
+        String location "Konum"
+        String academicTitle "Akademisyen Unvanı (Prof. Dr.)"
+        Int graduationYear "Mezuniyet Yılı"
+        String linkedin "Sosyal Medya"
+        String github "Sosyal Medya"
+        String website "Kişisel Site"
     }
 
-    %% İÇERİK MODELLERİ
     Post {
         String id PK
-        String authorId FK
-        String content
-        String imageUrl
+        String authorId FK "Yazar"
+        String content "İçerik Metni"
+        String imageUrl "Görsel (Opsiyonel)"
         DateTime createdAt
     }
 
     Comment {
         String id PK
-        String content
-        DateTime createdAt
-        String postId FK
-        String authorId FK
+        String content "Yorum Metni"
+        String postId FK "Hangi Gönderi?"
+        String authorId FK "Kim Yazdı?"
     }
 
     Like {
         String id PK
-        DateTime createdAt
-        String postId FK
-        String userId FK
+        String postId FK "Beğenilen Gönderi"
+        String userId FK "Beğenen Kişi"
+        Note "Bir kişi bir postu bir kez beğenebilir (Unique)"
     }
 
-    %% İLİŞKİ TABLOLARI
     Follows {
         String followerId FK "Takip Eden"
         String followingId FK "Takip Edilen"
         DateTime createdAt
     }
 
-    %% PROFİL DETAYLARI
     Experience {
         String id PK
         String profileId FK
-        String title
-        String company
-        String location
-        DateTime startDate
-        DateTime endDate
-        String description
+        String title "Pozisyon / Unvan"
+        String company "Şirket Adı"
+        DateTime startDate "Başlangıç"
+        DateTime endDate "Bitiş"
     }
 
     Education {
         String id PK
         String profileId FK
-        String school
-        String degree
-        String field
-        DateTime startDate
-        DateTime endDate
+        String school "Okul Adı"
+        String degree "Derece (Lisans vb.)"
+        String field "Bölüm / Alan"
     }
 
     Skill {
         String id PK
-        String name UK
+        String name UK "Yetenek Adı (Java, React vb.)"
     }
-
-    %% İLİŞKİLER (RELATIONS)
-    User ||--o| Profile : "1-1 (Opsiyonel)"
-    User ||--o{ Post : "yazar"
-    User ||--o{ Comment : "yorumlar"
-    User ||--o{ Like : "beğenir"
-    User ||--o{ Follows : "takip eder/edilir"
-
-    Profile ||--o{ Experience : "deneyimleri"
-    Profile ||--o{ Education : "eğitimleri"
-    Profile }o--o{ Skill : "yetenekleri (M-N)"
-
-    Post ||--o{ Comment : "içerir"
-    Post ||--o{ Like : "içerir"
