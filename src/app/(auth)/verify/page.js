@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyAction } from "@/actions/auth/verify-action";
+import { resendCodeAction } from "@/actions/auth/resend-code-action"; 
 
-// Sabitler
-const OTP_DURATION_SECONDS = 180; // 3 Dakika
+// DÜZELTME: Süre 3 Dakika (180 Saniye)
+const OTP_DURATION_SECONDS = 180; 
 
 export default function VerifyPage() {
   const router = useRouter();
@@ -18,20 +19,27 @@ export default function VerifyPage() {
   const [code, setCode] = useState("");
   const [timeLeft, setTimeLeft] = useState(OTP_DURATION_SECONDS);
   const [isClient, setIsClient] = useState(false);
-  const [status, setStatus] = useState({ loading: false, error: "", success: "" });
+  
+  const [status, setStatus] = useState({ 
+    loading: false, 
+    resendLoading: false,
+    error: "", 
+    success: "" 
+  });
 
   /**
-   * Sayaç Yönetimi (Timer Logic)
-   * Sayfa yenilendiğinde veri kaybını önlemek için bitiş süresi localStorage'da tutulur.
+   * Sayaç Yönetimi
    */
   useEffect(() => {
     setIsClient(true);
     if (!email) return;
 
-    const storageKey = `verify_expiry_${email}`;
+    // HİLE: Anahtar ismini değiştirdik (verify_expiry_v1_...) 
+    // Böylece eski (1 dakikalık) kayıtlar geçersiz sayılacak ve süre 3 dk'dan başlayacak.
+    const storageKey = `verify_expiry_v1_${email}`;
     let expiryTime = localStorage.getItem(storageKey);
 
-    // Eğer kayıtlı süre yoksa veya süre geçmişse yeni bitiş zamanı belirle
+    // Eğer kayıt yoksa YADA kayıtlı süre çoktan dolmuşsa yeni süre başlat
     if (!expiryTime) {
       expiryTime = Date.now() + OTP_DURATION_SECONDS * 1000;
       localStorage.setItem(storageKey, expiryTime);
@@ -40,23 +48,28 @@ export default function VerifyPage() {
     const updateTimer = () => {
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((expiryTime - now) / 1000));
-      setTimeLeft(remaining);
+      
+      // Eğer süre sapıtıp 180'den büyük çıkarsa (saat değişikliği vs.) düzelt
+      if (remaining > OTP_DURATION_SECONDS) {
+         setTimeLeft(OTP_DURATION_SECONDS);
+      } else {
+         setTimeLeft(remaining);
+      }
     };
 
-    updateTimer(); // İlk hesaplama
+    updateTimer(); // İlk açılışta hemen hesapla
     const intervalId = setInterval(updateTimer, 1000);
 
-    return () => clearInterval(intervalId); // Cleanup
+    return () => clearInterval(intervalId);
   }, [email]);
 
-  // E-posta parametre kontrolü
+  // E-posta kontrolü
   useEffect(() => {
     if (!email) {
       setStatus(prev => ({ ...prev, error: "E-posta bilgisi eksik. Lütfen tekrar giriş yapın." }));
     }
   }, [email]);
 
-  // Yardımcı Fonksiyon: Saniyeyi MM:SS formatına çevirir
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
@@ -65,17 +78,35 @@ export default function VerifyPage() {
 
   /**
    * Kodu Yeniden Gönder
-   * Sayacı ve localStorage verisini sıfırlar.
    */
-  const handleResendCode = () => {
-    // TODO: Backend 'resend-code' servisine bağlanacak.
-    alert("Kod tekrar gönderildi!");
-    
-    const newExpiryTime = Date.now() + OTP_DURATION_SECONDS * 1000;
-    localStorage.setItem(`verify_expiry_${email}`, newExpiryTime);
-    
-    setTimeLeft(OTP_DURATION_SECONDS);
-    setStatus({ loading: false, error: "", success: "" });
+  const handleResendCode = async () => {
+    if (!email) return;
+
+    setStatus(prev => ({ ...prev, resendLoading: true, error: "", success: "" }));
+
+    try {
+      const result = await resendCodeAction(email);
+
+      if (result.success) {
+        // Sayacı Sıfırla (Backend zaten 3 dk veriyor, biz de frontend'i 3 dk yapıyoruz)
+        const storageKey = `verify_expiry_v1_${email}`;
+        const newExpiryTime = Date.now() + OTP_DURATION_SECONDS * 1000;
+        localStorage.setItem(storageKey, newExpiryTime);
+        
+        setTimeLeft(OTP_DURATION_SECONDS); // Görsel olarak hemen 03:00 yap
+        
+        setStatus(prev => ({ 
+          ...prev, 
+          success: result.message 
+        }));
+      } else {
+        setStatus(prev => ({ ...prev, error: result.message }));
+      }
+    } catch (error) {
+      setStatus(prev => ({ ...prev, error: "Kod gönderilemedi." }));
+    } finally {
+      setStatus(prev => ({ ...prev, resendLoading: false }));
+    }
   };
 
   /**
@@ -83,7 +114,7 @@ export default function VerifyPage() {
    */
   const handleVerify = async (e) => {
     e.preventDefault();
-    setStatus({ loading: false, error: "", success: "" });
+    setStatus(prev => ({ ...prev, loading: false, error: "", success: "" }));
 
     if (timeLeft === 0) {
       setStatus(prev => ({ ...prev, error: "Süre doldu. Lütfen kodu tekrar isteyin." }));
@@ -101,10 +132,11 @@ export default function VerifyPage() {
       const result = await verifyAction(email, code);
 
       if (result.success) {
-        setStatus(prev => ({ ...prev, success: "Doğrulama başarılı! Yönlendiriliyorsunuz..." }));
-        localStorage.removeItem(`verify_expiry_${email}`); // Temizlik
+        setStatus(prev => ({ ...prev, success: "Doğrulama başarılı! Admin onayından sonra giriş yapabilirsiniz!" }));
+        // Başarılı olunca sayacı temizle
+        localStorage.removeItem(`verify_expiry_v1_${email}`);
         
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push("/login"), 3000);
       } else {
         setStatus(prev => ({ ...prev, error: result.message }));
       }
@@ -168,7 +200,7 @@ export default function VerifyPage() {
             }}
             required
             autoComplete="off"
-            disabled={status.loading || timeLeft === 0} 
+            disabled={status.loading || status.resendLoading || timeLeft === 0} 
           />
         </div>
 
@@ -186,7 +218,7 @@ export default function VerifyPage() {
 
         <button
           type="submit"
-          disabled={status.loading || !code || timeLeft === 0} 
+          disabled={status.loading || status.resendLoading || !code || timeLeft === 0} 
           className="
             inline-flex items-center justify-center rounded-md text-sm font-medium 
             bg-blue-600 text-white hover:bg-blue-700 
@@ -205,9 +237,10 @@ export default function VerifyPage() {
         <button 
           type="button"
           onClick={handleResendCode}
-          className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all"
+          disabled={status.resendLoading || status.loading}
+          className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all disabled:opacity-50"
         >
-          Tekrar Gönder
+          {status.resendLoading ? "Gönderiliyor..." : "Tekrar Gönder"}
         </button>
         <div className="mt-4">
             <Link href="/login" className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
