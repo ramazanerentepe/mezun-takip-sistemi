@@ -2,6 +2,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { createSession } from "@/lib/session";
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,8 @@ export async function loginAction(formData) {
         message: "Hesabınız henüz yönetici onayı almamıştır. Erişim izni bekleniyor." 
       };
     }
+
+    await createSession(user.id, user.role);
 
     return { 
       success: true, 
