@@ -35,7 +35,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* --- Header Section --- */}
       <div className="flex flex-col items-center text-center gap-2">
         <div className="relative w-20 h-20 mb-2">
           <Image 
@@ -46,29 +45,27 @@ export default function LoginPage() {
             priority 
           />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Konya Teknik Üniversitesi <br /> Hoş Geldiniz
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-300">
           Mezun Takip Sistemine giriş yapmak için bilgilerinizi girin.
         </p>
       </div>
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative text-sm" role="alert">
+        <div className="p-3 bg-red-900/30 border border-red-800 text-red-400 rounded text-sm font-semibold text-center animate-pulse">
           {error}
         </div>
       )}
 
-      {/* --- Form --- */}
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         
-        {/* Email */}
         <div className="space-y-1">
-          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-gray-300" htmlFor="email">
+          <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-300" htmlFor="email">
             E-posta Adresi
           </label>
           <input
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-white"
+            className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
             id="email"
             name="email"
             placeholder="E-posta Adresi"
@@ -81,21 +78,20 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Password */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 dark:text-gray-300" htmlFor="password">
+            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-300" htmlFor="password">
               Şifre
             </label>
             <Link 
               href="/forgot-password" 
-              className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-colors"
+              className="text-sm font-medium text-blue-500 hover:text-blue-400 transition-colors"
             >
               Şifremi unuttum?
             </Link>
           </div>
           <input
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-white"
+            className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
             id="password"
             name="password"
             placeholder="••••••••"
@@ -106,7 +102,6 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* Button */}
         <button
           type="submit" 
           disabled={loading}
@@ -116,12 +111,11 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {/* --- Footer --- */}
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+      <div className="text-center text-sm text-gray-400">
         Hesabınız yok mu?{" "}
         <Link 
           href="/register" 
-          className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all"
+          className="font-semibold text-blue-500 hover:text-blue-400 transition-all"
         >
           Hemen Kayıt Ol
         </Link>
