@@ -55,7 +55,7 @@ export default function AuthLayout({ children }) {
       </div>
 
       <div className="flex min-h-screen items-center justify-center py-10 px-4">
-        <div className="w-full max-w-lg p-8 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl dark:bg-black/80 dark:border dark:border-zinc-700 transition-all">
+        <div className="w-full max-w-lg p-8 bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-zinc-700 text-white transition-all">
           {children}
         </div>
       </div>

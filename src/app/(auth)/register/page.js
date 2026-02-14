@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-// Bölüm çekme fonksiyonu artık gerekmiyor
 import { registerAction } from "@/actions/auth/register-action"; 
 
 const ACADEMIC_TITLES = [
@@ -18,12 +17,10 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ARAMA STATE'LERİ
   const [titleSearchTerm, setTitleSearchTerm] = useState(""); 
   const [isTitleDropdownOpen, setIsTitleDropdownOpen] = useState(false); 
   const titleDropdownRef = useRef(null);
 
-  // FORM VERİLERİ 
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
@@ -34,12 +31,10 @@ export default function RegisterPage() {
     title: "",     
   });
 
-  // Filtrelemeler
   const filteredTitles = ACADEMIC_TITLES.filter((title) =>
     title.toLocaleLowerCase('tr').includes(titleSearchTerm.toLocaleLowerCase('tr'))
   );
 
-  // Dışarı tıklama kontrolü
   useEffect(() => {
     function handleClickOutside(event) {
       if (titleDropdownRef.current && !titleDropdownRef.current.contains(event.target)) {
@@ -60,7 +55,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(""); 
 
-    // Validasyonlar
     if (formData.password !== formData.confirmPassword) {
       setError("HATA: Şifreler uyuşmuyor.");
       return; 
@@ -70,7 +64,6 @@ export default function RegisterPage() {
       return;
     }
     
-    // Akademisyen seçiliyse unvan zorunlu
     if (userType === "academician" && !formData.title) {
       setError("HATA: Lütfen unvanınızı seçiniz.");
       return;
@@ -78,7 +71,6 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Payload sadeleştirildi
     const registerPayload = {
       userRole: userType === "graduate" ? "GRADUATE" : "ACADEMIC",
       firstName: formData.name,
@@ -98,7 +90,6 @@ export default function RegisterPage() {
       const result = await registerAction(registerPayload);
 
       if (result.success) {
-        // Her iki rol de önce e-posta doğrulamaya gider
         router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
       } else {
         setError(result.message);
@@ -117,22 +108,22 @@ export default function RegisterPage() {
         <div className="relative w-16 h-16 mb-1">
           <Image src="/logo.png" alt="Logo" fill className="object-contain" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Aramıza Katılın
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-300">
           Mezun veya Akademisyen hesabı oluşturun.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg dark:bg-zinc-800">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-800 rounded-lg">
         <button
           type="button"
           onClick={() => { setUserType("graduate"); setError(""); }}
           className={`text-sm font-medium py-2 rounded-md transition-all ${
             userType === "graduate"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-zinc-700 dark:text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-zinc-700 text-white shadow-sm"
+              : "text-gray-400 hover:text-gray-200"
           }`}
         >
           Mezun Öğrenci
@@ -142,8 +133,8 @@ export default function RegisterPage() {
           onClick={() => { setUserType("academician"); setError(""); }}
           className={`text-sm font-medium py-2 rounded-md transition-all ${
             userType === "academician"
-              ? "bg-white text-blue-600 shadow-sm dark:bg-zinc-700 dark:text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              ? "bg-zinc-700 text-white shadow-sm"
+              : "text-gray-400 hover:text-gray-200"
           }`}
         >
           Akademisyen
@@ -152,14 +143,13 @@ export default function RegisterPage() {
 
       <form onSubmit={handleRegister} className="flex flex-col gap-4">
         
-        {/* Ad - Soyad */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium dark:text-gray-300">Ad</label>
+            <label className="text-sm font-medium text-gray-300">Ad</label>
             <input
               id="name"
               type="text"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Ad"
               required
               value={formData.name}
@@ -167,11 +157,11 @@ export default function RegisterPage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium dark:text-gray-300">Soyad</label>
+            <label className="text-sm font-medium text-gray-300">Soyad</label>
             <input
               id="surname"
               type="text"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Soyad"
               required
               value={formData.surname}
@@ -180,13 +170,12 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* E-posta */}
         <div className="space-y-1">
-          <label className="text-sm font-medium dark:text-gray-300">E-posta</label>
+          <label className="text-sm font-medium text-gray-300">E-posta</label>
           <input
             id="email"
             type="email"
-            className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+            className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
             placeholder={userType === "graduate" ? "E-posta Adresi" : "E-posta Adresi"}
             required
             value={formData.email}
@@ -194,16 +183,15 @@ export default function RegisterPage() {
           />
         </div>
 
-        {/* DİNAMİK ALANLAR  */}
         {userType === "graduate" ? (
           <div className="space-y-1">
-            <label className="text-sm font-medium dark:text-gray-300">Mezuniyet Yılı</label>
+            <label className="text-sm font-medium text-gray-300">Mezuniyet Yılı</label>
             <input
               id="gradYear"
               type="number"
               min="2010"
               max={new Date().getFullYear()} 
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Yıl"
               required
               value={formData.gradYear}
@@ -212,10 +200,10 @@ export default function RegisterPage() {
           </div>
         ) : (
           <div className="space-y-1 relative" ref={titleDropdownRef}>
-            <label className="text-sm font-medium dark:text-gray-300">Unvan</label>
+            <label className="text-sm font-medium text-gray-300">Unvan</label>
             <input
               type="text"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white placeholder:text-gray-400"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Unvan Seçiniz"
               value={titleSearchTerm}
               required
@@ -227,7 +215,7 @@ export default function RegisterPage() {
               onFocus={() => setIsTitleDropdownOpen(true)}
             />
             {isTitleDropdownOpen && (
-              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+             <div className="absolute z-50 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
                 {filteredTitles.length > 0 ? (
                   filteredTitles.map((title, index) => (
                     <div
@@ -237,27 +225,26 @@ export default function RegisterPage() {
                         setFormData((prev) => ({ ...prev, title: title }));
                         setIsTitleDropdownOpen(false);
                       }}
-                      className="cursor-pointer px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-zinc-700 transition-colors"
+                      className="cursor-pointer px-4 py-2 text-sm text-gray-100 hover:bg-zinc-700 transition-colors"
                     >
                       {title}
                     </div>
                   ))
                 ) : (
-                  <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Sonuç yok, yazabilirsiniz.</div>
+                  <div className="px-4 py-3 text-sm text-gray-400">Sonuç yok, yazabilirsiniz.</div>
                 )}
               </div>
             )}
           </div>
         )}
 
-        {/* ŞİFRE ALANLARI */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium dark:text-gray-300">Şifre</label>
+            <label className="text-sm font-medium text-gray-300">Şifre</label>
             <input
               id="password"
               type="password"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Şifre"
               required
               value={formData.password}
@@ -265,11 +252,11 @@ export default function RegisterPage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium dark:text-gray-300">Şifre Tekrar</label>
+            <label className="text-sm font-medium text-gray-300">Şifre Tekrar</label>
             <input
               id="confirmPassword"
               type="password"
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
+              className="flex h-10 w-full rounded-md border border-zinc-700 bg-transparent px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 placeholder:text-gray-400"
               placeholder="Şifre Tekrar"
               required
               value={formData.confirmPassword}
@@ -279,7 +266,7 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm font-semibold text-center animate-pulse dark:bg-red-900/30 dark:border-red-800 dark:text-red-400">
+          <div className="p-3 bg-red-900/30 border border-red-800 text-red-400 rounded text-sm font-semibold text-center animate-pulse">
             {error}
           </div>
         )}
@@ -293,9 +280,9 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+      <div className="text-center text-sm text-gray-400">
         Zaten hesabınız var mı?{" "}
-        <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-500 dark:text-blue-400 transition-all">
+        <Link href="/login" className="font-semibold text-blue-500 hover:text-blue-400 transition-all">
           Giriş Yap
         </Link>
       </div>
