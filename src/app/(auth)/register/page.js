@@ -162,6 +162,7 @@ export default function RegisterPage() {
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
               placeholder="Ad"
               required
+              value={formData.name}
               onChange={handleChange}
             />
           </div>
@@ -173,6 +174,7 @@ export default function RegisterPage() {
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
               placeholder="Soyad"
               required
+              value={formData.surname}
               onChange={handleChange}
             />
           </div>
@@ -187,6 +189,7 @@ export default function RegisterPage() {
             className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
             placeholder={userType === "graduate" ? "E-posta Adresi" : "E-posta Adresi"}
             required
+            value={formData.email}
             onChange={handleChange}
           />
         </div>
@@ -203,6 +206,7 @@ export default function RegisterPage() {
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
               placeholder="Yıl"
               required
+              value={formData.gradYear}
               onChange={handleChange}
             />
           </div>
@@ -256,6 +260,7 @@ export default function RegisterPage() {
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
               placeholder="Şifre"
               required
+              value={formData.password}
               onChange={handleChange}
             />
           </div>
@@ -267,6 +272,7 @@ export default function RegisterPage() {
               className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 dark:border-zinc-700 dark:text-white"
               placeholder="Şifre Tekrar"
               required
+              value={formData.confirmPassword}
               onChange={handleChange}
             />
           </div>
