@@ -13,10 +13,11 @@ import {
   Moon,
   Sun,
   ChevronDown,
-  Bell
+  Bell,
+  Shield // Admin ikonu eklendi
 } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ isAdmin }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -70,12 +71,10 @@ export default function Navbar() {
                 className="relative p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all active:scale-95 overflow-hidden flex items-center justify-center w-10 h-10"
                 title="Temayı Değiştir"
               >
-                {/* Güneş İkonu (Dark modda görünür, Light modda dönerek kaybolur) */}
                 <Sun 
                   size={22} 
                   className={`absolute text-amber-500 transition-all duration-500 ${resolvedTheme === "dark" ? "rotate-0 opacity-100 scale-100" : "-rotate-90 opacity-0 scale-50"}`} 
                 />
-                {/* Ay İkonu (Light modda görünür, Dark modda dönerek kaybolur) */}
                 <Moon 
                   size={22} 
                   className={`absolute text-slate-600 dark:text-slate-400 transition-all duration-500 ${resolvedTheme === "dark" ? "rotate-90 opacity-0 scale-50" : "rotate-0 opacity-100 scale-100"}`} 
@@ -98,6 +97,17 @@ export default function Navbar() {
               {/* Açılan Menü İçeriği */}
               {isProfileOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-lg shadow-xl py-2 z-50">
+                  
+                  {/* SADECE ADMİNLERE GÖSTERİLEN BÖLÜM */}
+                  {isAdmin && (
+                    <>
+                      <Link href="/users" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-[#9d182e] font-bold dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10">
+                        <Shield size={16} /> Admin Paneli
+                      </Link>
+                      <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
+                    </>
+                  )}
+
                   <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Profilim</Link>
                   <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Ayarlar</Link>
                   <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
@@ -127,7 +137,7 @@ export default function Navbar() {
         
         <MobileNavItem href="/network" icon={<Users size={24} />} label="Ağ" />
         
-        {/* Mobilde Tema Değiştirme (Güncellenmiş Animasyonlu) */}
+        {/* Mobilde Tema Değiştirme */}
         <div 
            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
            className="flex flex-col items-center justify-center w-full h-full text-gray-500 dark:text-gray-400 cursor-pointer active:scale-95 transition-transform"
@@ -149,7 +159,7 @@ export default function Navbar() {
   );
 }
 
-// Yardımcı Alt Bileşenler
+// Yardımcı Alt Bileşenler (Hatanın sebebi bunların silinmesiydi)
 function NavItem({ href, icon, label }) {
   return (
     <Link href={href} className="flex flex-col items-center gap-1 group">
