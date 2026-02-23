@@ -14,8 +14,18 @@ import {
   Sun,
   ChevronDown,
   Bell,
-  Shield // Admin ikonu eklendi
+  Shield 
 } from "lucide-react";
+
+const getInitials = (name) => {
+  if (!name) return "U"; // İsim yoksa varsayılan
+  const names = name.split(" ");
+  let initials = names[0].substring(0, 1).toUpperCase();
+  if (names.length > 1) {
+    initials += names[names.length - 1].substring(0, 1).toUpperCase();
+  }
+  return initials;
+};
 
 export default function Navbar({ isAdmin }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -42,7 +52,7 @@ export default function Navbar({ isAdmin }) {
              </div>
           </Link>
 
-          {/* ORTA: Arama Çubuğu (Masaüstü) - Zarif Tasarım */}
+          {/* ORTA: Arama Çubuğu */}
           <div className="hidden md:flex flex-1 max-w-lg mx-8">
             <div className="relative w-full group">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 group-focus-within:text-[#9d182e] transition-colors duration-300">
@@ -61,10 +71,13 @@ export default function Navbar({ isAdmin }) {
             <NavItem href="/network" icon={<Users size={22} />} label="Ağım" />
             <NavItem href="/messages" icon={<MessageSquare size={22} />} label="Mesajlar" />
             <NavItem href="/jobs" icon={<Briefcase size={22} />} label="İlanlar" />
+            {isAdmin && (
+              <NavItem href="/users" icon={<Shield size={22} />} label="Admin" />
+            )}
             
             <div className="h-6 w-px bg-gray-200 dark:bg-zinc-700 mx-2"></div>
 
-            {/* YENİ TEMA BUTONU (Modern İkonlu Geçiş) */}
+            {/* TEMA BUTONU */}
             {mounted && (
               <button
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -82,36 +95,32 @@ export default function Navbar({ isAdmin }) {
               </button>
             )}
 
-            {/* PROFİL MENÜSÜ (Açılır Menü) */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-1 focus:outline-none"
+            {/* 3. HOVER İLE AÇILAN PROFİL MENÜSÜ */}
+            <div 
+              className="relative flex items-center h-16" 
+              onMouseEnter={() => setIsProfileOpen(true)}
+              onMouseLeave={() => setIsProfileOpen(false)}
+            >
+              {/* 2. TIKLANDIĞINDA PROFİLE GİDEN LİNK */}
+              <Link 
+                href="/profile"
+                className="flex items-center gap-1 focus:outline-none group"
               >
-                <div className="w-10 h-10 bg-white dark:bg-zinc-800 border-2 border-[#9d182e] text-[#9d182e] rounded-full flex items-center justify-center font-bold shadow-sm hover:bg-[#9d182e] hover:text-white transition">
+                <div className="w-10 h-10 bg-white dark:bg-zinc-800 border-2 border-[#9d182e] text-[#9d182e] rounded-full flex items-center justify-center font-bold shadow-sm group-hover:bg-[#9d182e] group-hover:text-white transition">
                   R
                 </div>
-                <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
-              </button>
+                <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+              </Link>
 
-              {/* Açılan Menü İçeriği */}
+              {/* Açılan Menü İçeriği - Fare boşluğa kaymasın diye pt-2 (padding-top) ile saran görünmez bir alan ekledik */}
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-lg shadow-xl py-2 z-50">
-                  
-                  {/* SADECE ADMİNLERE GÖSTERİLEN BÖLÜM */}
-                  {isAdmin && (
-                    <>
-                      <Link href="/users" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-[#9d182e] font-bold dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10">
-                        <Shield size={16} /> Admin Paneli
-                      </Link>
-                      <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
-                    </>
-                  )}
-
-                  <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Profilim</Link>
-                  <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Ayarlar</Link>
-                  <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
-                  <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 font-medium">Çıkış Yap</button>
+                <div className="absolute right-0 top-full w-48 pt-2 z-50">
+                  <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-lg shadow-xl py-2">
+                    <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Profilim</Link>
+                    <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Ayarlar</Link>
+                    <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
+                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 font-medium">Çıkış Yap</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -119,6 +128,9 @@ export default function Navbar({ isAdmin }) {
 
           {/* MOBİL MENÜ İKONLARI */}
           <div className="flex md:hidden items-center gap-4 text-[#9d182e] dark:text-gray-300">
+             {isAdmin && (
+               <Link href="/users"><Shield size={24} /></Link>
+             )}
              <Link href="/messages"><MessageSquare size={24} /></Link>
              <Bell size={24} />
           </div>
@@ -159,7 +171,7 @@ export default function Navbar({ isAdmin }) {
   );
 }
 
-// Yardımcı Alt Bileşenler (Hatanın sebebi bunların silinmesiydi)
+// Yardımcı Alt Bileşenler
 function NavItem({ href, icon, label }) {
   return (
     <Link href={href} className="flex flex-col items-center gap-1 group">
