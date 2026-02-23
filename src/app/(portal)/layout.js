@@ -16,7 +16,7 @@ export default async function PortalLayout({ children }) {
   let user = null;
   let isAdmin = false;
 
-  // 3. Eğer oturum varsa, kullanıcının gerçek bilgilerini Prisma'dan çek
+  // 3. Eğer oturum varsa, kullanıcının gerçek bilgilerini çek
   if (session?.userId) {
     const dbUser = await prisma.user.findUnique({
       where: { id: session.userId },
