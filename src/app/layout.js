@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "next-themes";
-import { Icon, icons } from "lucide-react";
+import { ThemeProvider } from "@/components/theme-provider"; // Kendi oluşturduğumuz provider
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,8 +15,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem={false}> 
+      <body className={`${inter.className} bg-background text-foreground transition-colors duration-300`}>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="system" 
+          enableSystem={true}
+          disableTransitionOnChange
+        > 
           {children}
         </ThemeProvider>
       </body>
