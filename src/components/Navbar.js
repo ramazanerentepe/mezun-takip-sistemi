@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { logoutAction } from "@/actions/auth/logout-action";
 import { 
   Home, 
   Search, 
@@ -127,7 +128,11 @@ export default function Navbar({ user, isAdmin }) {
                     <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Profilim</Link>
                     <Link href="/settings" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">Ayarlar</Link>
                     <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
-                    <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 font-medium">Çıkış Yap</button>
+                    <form action={logoutAction} className="w-full">
+                      <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 font-medium">
+                        Çıkış Yap
+                      </button>
+                    </form>
                   </div>
                 </div>
               )}
