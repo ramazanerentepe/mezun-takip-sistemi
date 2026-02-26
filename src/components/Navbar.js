@@ -22,6 +22,7 @@ export default function Navbar({ user, isAdmin }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -144,6 +145,47 @@ export default function Navbar({ user, isAdmin }) {
              {isAdmin && <Link href="/users"><Shield size={24} /></Link>}
              <Link href="/messages"><MessageSquare size={24} /></Link>
              <Bell size={24} />
+             
+             {/* MOBİL PROFİL & AYARLAR MENÜSÜ */}
+             <div className="relative">
+                <button 
+                  onClick={() => setIsMobileProfileOpen(!isMobileProfileOpen)} 
+                  className="flex items-center focus:outline-none ml-1"
+                >
+                  {user?.image ? (
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#9d182e] shadow-sm">
+                       <Image src={user.image} alt={fullName} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 bg-white dark:bg-zinc-800 border-2 border-[#9d182e] text-[#9d182e] rounded-full flex items-center justify-center font-bold text-xs shadow-sm">
+                      {userInitials}
+                    </div>
+                  )}
+                </button>
+
+                {/* Mobil Açılan Menü */}
+                {isMobileProfileOpen && (
+                  <div className="absolute right-0 top-full mt-4 w-48 z-50">
+                    <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-lg shadow-xl py-2">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-zinc-800 mb-1 truncate">
+                          {fullName}
+                      </div>
+                      <Link href="/profile" onClick={() => setIsMobileProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                        Profilim
+                      </Link>
+                      <Link href="/settings" onClick={() => setIsMobileProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800">
+                        Ayarlar
+                      </Link>
+                      <div className="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
+                      <form action={logoutAction} className="w-full">
+                        <button type="submit" className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 font-medium">
+                          Çıkış Yap
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                )}
+             </div>
           </div>
         </div>
       </nav>
