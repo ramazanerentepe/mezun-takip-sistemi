@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { logoutAction } from "@/actions/auth/logout-action";
 import { searchUsersAction, getNotificationsAction } from "@/actions/navbar/navbar-actions";
 import { 
@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Bell,
   Shield,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 
 export default function Navbar({ user, isAdmin }) {
@@ -28,12 +29,18 @@ export default function Navbar({ user, isAdmin }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileProfileOpen, setIsMobileProfileOpen] = useState(false);
   
-  const [searchTerm, setSearchTerm] = useState("");
-
   // Bildirim State'leri
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isNotifLoading, setIsNotifLoading] = useState(true);
+
+  // --- CANLI ARAMA (LIVE SEARCH) STATE'LERİ ---
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchContainerRef = useRef(null);
 
   // 1. LİNTER HATASINI ÇÖZEN KISIM (Hydration için mounted state'ini güvenli şekilde ayarla)
   useEffect(() => {
@@ -43,7 +50,7 @@ export default function Navbar({ user, isAdmin }) {
 
   // 2. BİLDİRİMLERİ ASENKRON OLARAK ÇEK
   useEffect(() => {
-    let isActive = true; // Cleanup fonksiyonu için bayrak
+    let isActive = true;
 
     const fetchNotifications = async () => {
       try {
@@ -60,8 +67,53 @@ export default function Navbar({ user, isAdmin }) {
     fetchNotifications();
 
     return () => {
-      isActive = false; // Bileşen ekrandan kalkarsa state güncellemesini durdur
+      isActive = false;
     };
+  }, []);
+
+  // 3. ARAMA İÇİN DEBOUNCE (Kullanıcı yazmayı bıraktıktan 300ms sonra tetiklenir)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // 4. DEBOUNCED TERM DEĞİŞTİĞİNDE ARAMA YAP
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (debouncedTerm.trim().length < 2) {
+        setSearchResults([]);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        // En fazla 5 sonuç getirerek hızlı bir önizleme sunuyoruz
+        const results = await searchUsersAction(debouncedTerm, 1, 5);
+        setSearchResults(results || []);
+      } catch (error) {
+        console.error("Canlı arama sırasında hata oluştu:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    fetchSearchResults();
+  }, [debouncedTerm]);
+
+  // Sayfada başka bir yere tıklandığında arama sonuçlarını kapat
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // KULLANICI BAŞ HARFLERİ
@@ -84,9 +136,10 @@ export default function Navbar({ user, isAdmin }) {
   };
   const userRoleText = roleMap[user?.role] || "Kullanıcı";
 
-  // ARAMA İŞLEMİ
-  const handleSearch = (e) => {
+  // ENTER İLE TÜM SONUÇLARI GÖRME (Eski arama mantığı)
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && searchTerm.trim() !== "") {
+      setShowSearchResults(false);
       router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
@@ -108,18 +161,83 @@ export default function Navbar({ user, isAdmin }) {
           </Link>
 
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full group">
+            <div className="relative w-full group" ref={searchContainerRef}>
               <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400 group-focus-within:text-[#9d182e] transition-colors duration-300">
                 <Search size={16} strokeWidth={2} />
               </span>
               <input 
                 type="text" 
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleSearch}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => {
+                  if (searchTerm.trim().length > 0) setShowSearchResults(true);
+                }}
+                onKeyDown={handleKeyDown}
                 placeholder="İsim, şirket veya ilan ara..." 
                 className="w-full bg-gray-100/60 dark:bg-zinc-900/60 hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm font-medium tracking-wide placeholder:font-normal rounded-full py-2 pl-10 pr-4 outline-none border border-transparent focus:border-red-500/20 focus:ring-4 focus:ring-red-500/10 focus:bg-white dark:focus:bg-zinc-900 transition-all duration-300 text-gray-800 dark:text-gray-100"
               />
+
+              {/* CANLI ARAMA SONUÇLARI DROPDOWN */}
+              {showSearchResults && searchTerm.trim().length >= 2 && (
+                <div className="absolute top-[110%] left-0 w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {isSearching ? (
+                    <div className="flex items-center justify-center p-6 text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin text-[#9d182e]" />
+                      <span className="ml-2 text-sm font-medium">Aranıyor...</span>
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="py-2 flex flex-col max-h-80 overflow-y-auto">
+                      <div className="px-4 py-2 text-[10px] font-bold tracking-widest text-gray-400 border-b border-gray-100/50 dark:border-white/5 uppercase">
+                        Kişiler ({searchResults.length})
+                      </div>
+                      {searchResults.map((result) => {
+                        const resultName = `${result.firstName} ${result.lastName}`;
+                        const resultInitials = `${result.firstName?.charAt(0) || ""}${result.lastName?.charAt(0) || ""}`;
+                        const company = result.experiences?.[0]?.company;
+
+                        return (
+                          <Link 
+                            key={result.id} 
+                            href={`/profile/${result.id}`}
+                            onClick={() => setShowSearchResults(false)}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                          >
+                            {result.user?.profileImage ? (
+                              <Image src={result.user.profileImage} alt={resultName} width={36} height={36} className="rounded-full object-cover w-9 h-9 border border-gray-200 dark:border-zinc-700" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-bold border border-gray-200 dark:border-zinc-700">
+                                {resultInitials}
+                              </div>
+                            )}
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{resultName}</span>
+                              {company && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{company}</span>
+                              )}
+                            </div>
+                          </Link>
+                        );
+                      })}
+                      
+                      <Link 
+                        href={`/search?q=${encodeURIComponent(searchTerm)}`}
+                        onClick={() => setShowSearchResults(false)}
+                        className="p-3 text-center text-sm font-semibold text-[#9d182e] hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors border-t border-gray-100 dark:border-white/5 mt-1"
+                      >
+                        Tüm "{searchTerm}" sonuçlarını gör
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-sm text-gray-500 font-medium">Sonuç bulunamadı</p>
+                      <p className="text-xs text-gray-400 mt-1">Farklı kelimelerle aramayı deneyin.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -142,7 +260,6 @@ export default function Navbar({ user, isAdmin }) {
             >
               <button className="relative p-2 rounded-xl text-gray-500 hover:text-[#9d182e] hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all duration-300">
                 <Bell size={20} strokeWidth={1.75} />
-                {/* EĞER BİLDİRİM VARSA KIRMIZI NOKTAYI GÖSTER */}
                 {notifications.length > 0 && (
                   <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-zinc-950 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
                 )}
@@ -155,7 +272,6 @@ export default function Navbar({ user, isAdmin }) {
                       Bildirimler
                     </div>
                     
-                    {/* BİLDİRİM LİSTESİ */}
                     <div className="max-h-72 overflow-y-auto">
                       {isNotifLoading ? (
                         <div className="px-4 py-8 text-center text-xs text-gray-500">Bildirimler yükleniyor...</div>
@@ -231,7 +347,6 @@ export default function Navbar({ user, isAdmin }) {
                   <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] py-2">
                     <div className="px-4 py-2 border-b border-gray-100/50 dark:border-white/5 mb-1">
                         <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{fullName}</p>
-                        {/* DİNAMİK ROL GÖSTERİMİ */}
                         <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{userRoleText}</p>
                     </div>
                     <Link href="/profile" onClick={() => setIsProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Profili Görüntüle</Link>
@@ -253,7 +368,6 @@ export default function Navbar({ user, isAdmin }) {
              <Link href="/messages" className="p-2 text-gray-500 hover:text-[#9d182e]"><MessageSquare size={22} strokeWidth={1.5} /></Link>
              <Link href="/notifications" className="relative p-2 text-gray-500 hover:text-[#9d182e]">
                <Bell size={22} strokeWidth={1.5} />
-               {/* MOBİL - EĞER BİLDİRİM VARSA KIRMIZI NOKTAYI GÖSTER */}
                {notifications.length > 0 && (
                  <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-zinc-950"></span>
                )}
@@ -298,11 +412,9 @@ export default function Navbar({ user, isAdmin }) {
                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-gray-200/50 dark:border-white/5 rounded-2xl shadow-2xl py-2 overflow-hidden">
                    <div className="px-4 py-2 border-b border-gray-100/50 dark:border-white/5 mb-1">
                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{fullName}</p>
-                       {/* MOBİL DİNAMİK ROL */}
                        <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{userRoleText}</p>
                    </div>
                    
-                   {/* MOBİL ADMİN PANELİ LİNKİ */}
                    {isAdmin && (
                      <Link href="/users" onClick={() => setIsMobileProfileOpen(false)} className="block px-4 py-2 text-sm font-bold text-[#9d182e] hover:bg-black/5 dark:hover:bg-white/5">
                        Admin Paneli

@@ -45,20 +45,23 @@ export async function searchUsersAction(searchTerm, page = 1, limit = 20) {
     }
 
     // DURUM B: Birden fazla kelime girildiyse (İsim + Soyisim formatı veya Uzun Şirket Adı)
-    if (terms.length >= 2) {
-      whereCondition.OR.push({
-        AND: [
-          // İlk kelimeyi ad olarak kabul et
-          { firstName: { contains: terms[0], mode: "insensitive" } },
-          // Kalan kelimeleri birleştirip soyad olarak ara (Örn: İkinci isim veya uzun soyisimler için)
-          { lastName: { contains: terms.slice(1).join(" "), mode: "insensitive" } }
+if (terms.length >= 2) {
+      // Girilen her bir kelimeyi dön ve her kelimenin ad veya soyad içinde geçmesini zorunlu kıl.
+      // Bu yapı "Ramazan Eren Tepe" gibi iki isimli durumlarda sorunsuz çalışır.
+      const nameConditions = terms.map((word) => ({
+        OR: [
+          { firstName: { contains: word, mode: "insensitive" } },
+          { lastName: { contains: word, mode: "insensitive" } }
         ]
-      });
-      // Ayrıca bu kelime öbeği bir şirket adı olabilir (Örn: "Türk Telekom")
+      }));
+
+      whereCondition.OR.push({ AND: nameConditions });
+
+      // Ayrıca bu tam kelime öbeği bir şirket adı olabilir (Örn: "Türk Telekom")
       whereCondition.OR.push({
         experiences: { some: { company: { contains: term, mode: "insensitive" } } }
       });
-    } 
+    }
     // DURUM C: Tek kelime girildiyse, tüm olası sütunlarda bağımsız arama yap
     else {
       whereCondition.OR.push({ firstName: { contains: term, mode: "insensitive" } });
