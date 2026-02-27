@@ -47,7 +47,6 @@ export async function searchUsersAction(searchTerm, page = 1, limit = 20) {
     // DURUM B: Birden fazla kelime girildiyse (İsim + Soyisim formatı veya Uzun Şirket Adı)
 if (terms.length >= 2) {
       // Girilen her bir kelimeyi dön ve her kelimenin ad veya soyad içinde geçmesini zorunlu kıl.
-      // Bu yapı "Ramazan Eren Tepe" gibi iki isimli durumlarda sorunsuz çalışır.
       const nameConditions = terms.map((word) => ({
         OR: [
           { firstName: { contains: word, mode: "insensitive" } },

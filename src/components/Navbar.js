@@ -227,7 +227,7 @@ export default function Navbar({ user, isAdmin }) {
                         onClick={() => setShowSearchResults(false)}
                         className="p-3 text-center text-sm font-semibold text-[#9d182e] hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors border-t border-gray-100 dark:border-white/5 mt-1"
                       >
-                        Tüm "{searchTerm}" sonuçlarını gör
+                        {`Tüm "${searchTerm}" sonuçlarını gör`}
                       </Link>
                     </div>
                   ) : (
