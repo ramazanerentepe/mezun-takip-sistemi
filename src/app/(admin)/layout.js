@@ -1,19 +1,68 @@
-export default function AdminLayout({ children }) {
-  return (
-    <div className="min-h-screen flex bg-gray-100 dark:bg-zinc-900">
-      {/* Geçici Sidebar */}
-      <aside className="w-64 bg-slate-800 text-white flex flex-col p-4">
-        <h2 className="text-2xl font-bold mb-6">Admin Panel</h2>
-        <nav className="flex flex-col gap-2">
-          <div className="p-2 hover:bg-slate-700 rounded cursor-pointer">Kullanıcılar</div>
-          <div className="p-2 hover:bg-slate-700 rounded cursor-pointer">Ayarlar</div>
-        </nav>
-      </aside>
+import Navbar from "@/components/Navbar";
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { decrypt } from "@/lib/session";
+import { PrismaClient } from "@prisma/client";
 
-      {/* Admin İçeriği */}
-      <main className="flex-1 p-8">
-        {children}
-      </main>
+const prisma = new PrismaClient();
+
+export default async function AdminLayout({ children }) {
+  // 1. Tarayıcıdan session çerezini al ve çöz
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session")?.value;
+  const session = await decrypt(sessionCookie);
+
+  // 2. Giriş yapan kullanıcının verilerini veritabanından çek
+  let currentUser = null;
+  if (session?.userId) {
+    currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        profile: {
+          select: {
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          }
+        }
+      }
+    });
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-zinc-900">
+      
+      {/* 3. Çektiğimiz kullanıcı bilgisini Navbar'a prop olarak geçiriyoruz */}
+      <Navbar user={currentUser} />
+
+      <div className="flex flex-1 overflow-hidden">
+        
+        <aside className="w-64 bg-slate-800 dark:bg-zinc-950 text-white flex flex-col p-4 border-r border-slate-700 dark:border-zinc-800">
+          <h2 className="text-2xl font-bold mb-6 text-slate-100">Admin Panel</h2>
+          <nav className="flex flex-col gap-2">
+            <Link 
+              href="/users" 
+              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
+            >
+              Kullanıcılar
+            </Link>
+            <Link 
+              href="/settings" 
+              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
+            >
+              Ayarlar
+            </Link>
+          </nav>
+        </aside>
+
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+          {children}
+        </main>
+
+      </div>
     </div>
   );
 }

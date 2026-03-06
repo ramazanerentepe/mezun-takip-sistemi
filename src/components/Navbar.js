@@ -34,7 +34,7 @@ export default function Navbar({ user, isAdmin }) {
   const [notifications, setNotifications] = useState([]);
   const [isNotifLoading, setIsNotifLoading] = useState(true);
 
-  // --- CANLI ARAMA (LIVE SEARCH) STATE'LERİ ---
+  // --- CANLI ARAMA STATE'LERİ ---
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -42,16 +42,13 @@ export default function Navbar({ user, isAdmin }) {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchContainerRef = useRef(null);
 
-  // 1. LİNTER HATASINI ÇÖZEN KISIM (Hydration için mounted state'ini güvenli şekilde ayarla)
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
-  // 2. BİLDİRİMLERİ ASENKRON OLARAK ÇEK
   useEffect(() => {
     let isActive = true;
-
     const fetchNotifications = async () => {
       try {
         const data = await getNotificationsAction();
@@ -63,24 +60,17 @@ export default function Navbar({ user, isAdmin }) {
         if (isActive) setIsNotifLoading(false);
       }
     };
-
     fetchNotifications();
-
-    return () => {
-      isActive = false;
-    };
+    return () => { isActive = false; };
   }, []);
 
-  // 3. ARAMA İÇİN DEBOUNCE (Kullanıcı yazmayı bıraktıktan 300ms sonra tetiklenir)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedTerm(searchTerm);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // 4. DEBOUNCED TERM DEĞİŞTİĞİNDE ARAMA YAP
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (debouncedTerm.trim().length < 2) {
@@ -88,24 +78,20 @@ export default function Navbar({ user, isAdmin }) {
         setIsSearching(false);
         return;
       }
-
       setIsSearching(true);
       try {
-        // En fazla 5 sonuç getirerek hızlı bir önizleme sunuyoruz
         const results = await searchUsersAction(debouncedTerm, 1, 5);
         setSearchResults(results || []);
       } catch (error) {
-        console.error("Canlı arama sırasında hata oluştu:", error);
+        console.error("Arama hatası:", error);
         setSearchResults([]);
       } finally {
         setIsSearching(false);
       }
     };
-
     fetchSearchResults();
   }, [debouncedTerm]);
 
-  // Sayfada başka bir yere tıklandığında arama sonuçlarını kapat
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
@@ -116,18 +102,17 @@ export default function Navbar({ user, isAdmin }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // KULLANICI BAŞ HARFLERİ
+  // KULLANICI BAŞ HARFLERİ (Veritabanı Şemasına Uygun: user.profile)
   let userInitials = "U";
   let fullName = "Kullanıcı";
 
-  if (user?.firstName || user?.lastName) {
-    const firstInitial = user.firstName ? user.firstName.charAt(0).toUpperCase() : "";
-    const lastInitial = user.lastName ? user.lastName.charAt(0).toUpperCase() : "";
+  if (user?.profile?.firstName || user?.profile?.lastName) {
+    const firstInitial = user.profile.firstName ? user.profile.firstName.charAt(0).toUpperCase() : "";
+    const lastInitial = user.profile.lastName ? user.profile.lastName.charAt(0).toUpperCase() : "";
     userInitials = `${firstInitial}${lastInitial}`;
-    fullName = `${user.firstName} ${user.lastName}`.trim();
+    fullName = `${user.profile.firstName || ""} ${user.profile.lastName || ""}`.trim();
   }
 
-  // ROLÜ TÜRKÇEYE ÇEVİRME
   const roleMap = {
     SUPER_ADMIN: "Süper Admin",
     ADMIN: "Yönetici",
@@ -136,7 +121,6 @@ export default function Navbar({ user, isAdmin }) {
   };
   const userRoleText = roleMap[user?.role] || "Kullanıcı";
 
-  // ENTER İLE TÜM SONUÇLARI GÖRME (Eski arama mantığı)
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && searchTerm.trim() !== "") {
       setShowSearchResults(false);
@@ -146,7 +130,7 @@ export default function Navbar({ user, isAdmin }) {
 
   return (
     <>
-      {/* MASAÜSTÜ ÜST MENÜ */}
+      {/* MASAÜSTÜ MENÜ */}
       <nav className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/70 dark:bg-zinc-950/70 border-b border-gray-200/40 dark:border-white/[0.05] shadow-[0_4px_30px_rgba(0,0,0,0.03)] transition-all duration-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
@@ -180,7 +164,6 @@ export default function Navbar({ user, isAdmin }) {
                 className="w-full bg-gray-100/60 dark:bg-zinc-900/60 hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm font-medium tracking-wide placeholder:font-normal rounded-full py-2 pl-10 pr-4 outline-none border border-transparent focus:border-red-500/20 focus:ring-4 focus:ring-red-500/10 focus:bg-white dark:focus:bg-zinc-900 transition-all duration-300 text-gray-800 dark:text-gray-100"
               />
 
-              {/* CANLI ARAMA SONUÇLARI DROPDOWN */}
               {showSearchResults && searchTerm.trim().length >= 2 && (
                 <div className="absolute top-[110%] left-0 w-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-white/20 dark:border-white/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   {isSearching ? (
@@ -214,14 +197,11 @@ export default function Navbar({ user, isAdmin }) {
                             )}
                             <div className="flex flex-col flex-1 min-w-0">
                               <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{resultName}</span>
-                              {company && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{company}</span>
-                              )}
+                              {company && <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{company}</span>}
                             </div>
                           </Link>
                         );
                       })}
-                      
                       <Link 
                         href={`/search?q=${encodeURIComponent(searchTerm)}`}
                         onClick={() => setShowSearchResults(false)}
@@ -252,7 +232,6 @@ export default function Navbar({ user, isAdmin }) {
             
             <div className="h-8 w-px bg-gray-200 dark:bg-zinc-800 mx-3"></div>
 
-            {/* BİLDİRİMLER AÇILIR MENÜSÜ */}
             <div 
               className="relative flex items-center h-16 px-2"
               onMouseEnter={() => setIsNotificationsOpen(true)}
@@ -271,7 +250,6 @@ export default function Navbar({ user, isAdmin }) {
                     <div className="px-4 py-3 text-[11px] font-bold tracking-widest text-gray-400 border-b border-gray-100/50 dark:border-white/5 uppercase">
                       Bildirimler
                     </div>
-                    
                     <div className="max-h-72 overflow-y-auto">
                       {isNotifLoading ? (
                         <div className="px-4 py-8 text-center text-xs text-gray-500">Bildirimler yükleniyor...</div>
@@ -291,15 +269,11 @@ export default function Navbar({ user, isAdmin }) {
                               <p className="text-sm text-gray-700 dark:text-gray-200 leading-tight">
                                 <span className="font-semibold text-gray-900 dark:text-white">{notif.actorName}</span> {notif.message}
                               </p>
-                              <span className="text-[10px] text-gray-400 font-medium mt-1 block">
-                                {new Date(notif.time).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}
-                              </span>
                             </div>
                           </div>
                         ))
                       )}
                     </div>
-
                     <Link href="/notifications" onClick={() => setIsNotificationsOpen(false)} className="block text-center px-4 py-3 text-xs text-gray-500 hover:text-[#9d182e] font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                       Tümünü Gör
                     </Link>
@@ -312,7 +286,6 @@ export default function Navbar({ user, isAdmin }) {
               <button
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                 className="relative flex items-center justify-center w-9 h-9 mx-1 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-gray-500 transition-all duration-300 active:scale-95 overflow-hidden border border-gray-200/50 dark:border-zinc-800/50 shadow-sm"
-                title="Temayı Değiştir"
               >
                 <div className={`absolute inset-0 transition-transform duration-500 ease-out ${resolvedTheme === "dark" ? "rotate-0 opacity-100 scale-100" : "-rotate-90 opacity-0 scale-50"}`}>
                   <Moon size={16} strokeWidth={2} className="absolute inset-0 m-auto text-indigo-400 drop-shadow-[0_0_6px_rgba(129,140,248,0.4)]" />
@@ -323,16 +296,16 @@ export default function Navbar({ user, isAdmin }) {
               </button>
             )}
 
-            {/* MASAÜSTÜ PROFİL BÖLÜMÜ */}
+            {/* MASAÜSTÜ PROFİL */}
             <div 
               className="relative flex items-center h-16 pl-2" 
               onMouseEnter={() => setIsProfileOpen(true)}
               onMouseLeave={() => setIsProfileOpen(false)}
             >
               <Link href="/profile" className="flex items-center gap-1.5 focus:outline-none group">
-                {user?.image ? (
+                {user?.profile?.avatarUrl ? (
                   <div className="relative w-9 h-9 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:border-red-500/50">
-                     <Image src={user.image} alt={fullName} fill className="object-cover" />
+                     <Image src={user.profile.avatarUrl} alt={fullName} fill className="object-cover" />
                   </div>
                 ) : (
                   <div className="w-9 h-9 bg-gradient-to-br from-red-50 to-red-100 dark:from-zinc-800 dark:to-zinc-900 border border-red-100 dark:border-zinc-700 text-[#9d182e] rounded-full flex items-center justify-center font-bold text-sm shadow-sm transition-all duration-300 group-hover:shadow-md">
@@ -368,9 +341,7 @@ export default function Navbar({ user, isAdmin }) {
              <Link href="/messages" className="p-2 text-gray-500 hover:text-[#9d182e]"><MessageSquare size={22} strokeWidth={1.5} /></Link>
              <Link href="/notifications" className="relative p-2 text-gray-500 hover:text-[#9d182e]">
                <Bell size={22} strokeWidth={1.5} />
-               {notifications.length > 0 && (
-                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-zinc-950"></span>
-               )}
+               {notifications.length > 0 && <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-zinc-950"></span>}
              </Link>
           </div>
         </div>
@@ -396,8 +367,8 @@ export default function Navbar({ user, isAdmin }) {
                className="flex flex-col items-center justify-center focus:outline-none w-full h-full active:scale-95 transition-transform"
              >
                 <div className="relative w-7 h-7 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 shadow-sm mb-1">
-                  {user?.image ? (
-                    <Image src={user.image} alt={fullName} fill className="object-cover" />
+                  {user?.profile?.avatarUrl ? (
+                    <Image src={user.profile.avatarUrl} alt={fullName} fill className="object-cover" />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-red-50 to-red-100 dark:from-zinc-800 dark:to-zinc-900 text-[#9d182e] flex items-center justify-center font-bold text-[10px]">
                       {userInitials}
@@ -448,7 +419,6 @@ export default function Navbar({ user, isAdmin }) {
   );
 }
 
-// YARDIMCI BİLEŞENLER
 function NavItem({ href, icon, label }) {
   return (
     <Link href={href} className="relative flex flex-col items-center justify-center w-16 h-14 group">
