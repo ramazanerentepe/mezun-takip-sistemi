@@ -72,13 +72,22 @@ if (terms.length >= 2) {
 
     // 3. Veritabanı Sorgusu ve Optimizasyon
     const results = await prisma.profile.findMany({
-      where: whereCondition,
+      where: {
+        AND: [
+          whereCondition, // Kullanıcının girdiği arama şartları (İsim, şirket vb.)
+          {
+            user: {
+              isAdminApproved: true // SADECE admin onaylı kullanıcıları getir
+            }
+          }
+        ]
+      },
       include: {
         user: {
           select: { 
             role: true, 
             profileImage: true,
-            // Popülerlik hesaplaması için maliyetli bir 'include' yerine sadece '_count' alıyoruz (Performans artışı)
+            // Popülerlik hesaplaması için maliyetli bir 'include' yerine sadece '_count' alıyoruz
             _count: { select: { followedBy: true } } 
           }
         },
