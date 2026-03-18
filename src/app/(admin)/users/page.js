@@ -16,11 +16,17 @@ export default async function UsersPage(props) {
 
   try {
     pendingCount = await prisma.user.count({
-      where: { isAdminApproved: false }
+      where: { 
+        isAdminApproved: false,
+        isEmailVerified: true 
+      }
     });
 
     const whereClause = {
-      ...(pendingOnly ? { isAdminApproved: false } : {}),
+      ...(pendingOnly ? { 
+        isAdminApproved: false,
+        isEmailVerified: true
+      } : {}),
       ...(query ? {
         OR: [
           { email: { contains: query, mode: 'insensitive' } },
