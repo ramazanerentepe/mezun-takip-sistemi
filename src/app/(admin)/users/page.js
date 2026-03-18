@@ -1,25 +1,37 @@
 import { PrismaClient } from '@prisma/client';
 import UsersTable from '@/components/admin/UsersTable'; 
 import SearchInput from '@/components/admin/SearchInput'; 
+import PendingFilterButton from '@/components/admin/PendingFilterButton';
 
 const prisma = new PrismaClient();
 
 export default async function UsersPage(props) {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
+  const pendingOnly = searchParams?.pendingOnly === "true";
 
   let users = [];
+  let pendingCount = 0;
   let error = null;
 
   try {
-    users = await prisma.user.findMany({
-      where: {
+    pendingCount = await prisma.user.count({
+      where: { isAdminApproved: false }
+    });
+
+    const whereClause = {
+      ...(pendingOnly ? { isAdminApproved: false } : {}),
+      ...(query ? {
         OR: [
           { email: { contains: query, mode: 'insensitive' } },
           { profile: { firstName: { contains: query, mode: 'insensitive' } } },
           { profile: { lastName: { contains: query, mode: 'insensitive' } } },
         ]
-      },
+      } : {})
+    };
+
+    users = await prisma.user.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         profile: {
@@ -35,7 +47,7 @@ export default async function UsersPage(props) {
   return (
     <div className="bg-white/80 dark:bg-zinc-900/50 backdrop-blur-xl border border-gray-200/60 dark:border-white/5 rounded-2xl shadow-sm p-6 md:p-8 transition-colors duration-300">
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Kullanıcı Yönetimi
@@ -45,7 +57,10 @@ export default async function UsersPage(props) {
           </p>
         </div>
         
-        <SearchInput defaultValue={query} />
+        <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-3">
+          <PendingFilterButton pendingCount={pendingCount} />
+          <SearchInput defaultValue={query} />
+        </div>
       </div>
 
       {error ? (
