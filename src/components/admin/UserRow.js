@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { approveUser, deleteUser, updateUserRole } from '@/actions/admin/user-actions';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function UserRow({ user }) {
   const router = useRouter();
@@ -67,7 +68,16 @@ export default function UserRow({ user }) {
 
   return (
     <tr className={`hover:bg-gray-50/50 dark:hover:bg-zinc-700/30 transition-colors ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
-      <td className="p-4 text-gray-800 dark:text-gray-200 font-medium">{fullName}</td>
+      <td className="p-4 font-medium">
+        <Link 
+          href={`/profile/${user.id}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors underline-offset-2 hover:underline"
+        >
+          {fullName}
+        </Link>
+      </td>
       <td className="p-4 text-gray-600 dark:text-gray-400 text-sm">{user.email}</td>
       <td className="p-4">
         {isEditingRole ? (
