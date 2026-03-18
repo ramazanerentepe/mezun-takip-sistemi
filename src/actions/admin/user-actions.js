@@ -21,8 +21,12 @@ async function checkAdminAuth() {
 
 export async function approveUser(userId) {
   try {
-    await checkAdminAuth();
+    const session = await checkAdminAuth();
     
+    if (session.userId === userId) {
+      throw new Error("Kendi hesabınız üzerinde işlem yapamazsınız.");
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { isAdminApproved: true },
@@ -54,7 +58,7 @@ export async function approveUser(userId) {
         `
       });
     } catch (mailError) {
-      console.error("Mail Error:", mailError);
+      console.error(mailError);
     }
     
     revalidatePath("/users"); 
@@ -67,6 +71,11 @@ export async function approveUser(userId) {
 export async function deleteUser(userId, reason) {
   try {
     const adminSession = await checkAdminAuth();
+
+    if (adminSession.userId === userId) {
+      throw new Error("Kendi hesabınızı silemezsiniz.");
+    }
+
     const adminUser = await prisma.user.findUnique({
       where: { id: adminSession.userId },
       select: { 
@@ -78,6 +87,7 @@ export async function deleteUser(userId, reason) {
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { 
+        role: true,
         email: true, 
         profile: { select: { firstName: true, lastName: true } } 
       }
@@ -85,6 +95,10 @@ export async function deleteUser(userId, reason) {
 
     if (!targetUser) {
       throw new Error("Silinecek kullanıcı bulunamadı.");
+    }
+
+    if (adminSession.role === "ADMIN" && targetUser.role === "SUPER_ADMIN") {
+      throw new Error("Süper Admin hesabını silmeye yetkiniz yok.");
     }
 
     await prisma.user.delete({
@@ -121,7 +135,7 @@ export async function deleteUser(userId, reason) {
         `
       });
     } catch (mailError) {
-      console.error("Mail Error:", mailError);
+      console.error(mailError);
     }
 
     revalidatePath("/users");
@@ -135,8 +149,26 @@ export async function updateUserRole(userId, newRole) {
   try {
     const adminSession = await checkAdminAuth();
     
-    if (adminSession.role !== "SUPER_ADMIN" && newRole === "SUPER_ADMIN") {
-      throw new Error("Yetkisiz işlem.");
+    if (adminSession.userId === userId) {
+      throw new Error("Kendi yetkinizi değiştiremezsiniz.");
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!targetUser) {
+      throw new Error("Kullanıcı bulunamadı.");
+    }
+
+    if (adminSession.role === "ADMIN") {
+      if (targetUser.role === "SUPER_ADMIN") {
+        throw new Error("Süper Admin'in yetkisini değiştiremezsiniz.");
+      }
+      if (newRole === "SUPER_ADMIN") {
+        throw new Error("Süper Admin yetkisi veremezsiniz.");
+      }
     }
 
     await prisma.user.update({
