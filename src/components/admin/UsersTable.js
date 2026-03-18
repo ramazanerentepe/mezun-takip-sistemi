@@ -8,7 +8,7 @@ export default function UsersTable({ initialUsers }) {
   if (!initialUsers || initialUsers.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg">
-        Sistemde henüz kayıtlı kullanıcı bulunmamaktadır.
+        Sistemde henüz onay bekleyen kullanıcı bulunmamaktadır.
       </div>
     );
   }
