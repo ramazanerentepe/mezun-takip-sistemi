@@ -2,6 +2,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { sendMail } from "@/lib/send-mail";
+import { getResendCodeEmailTemplate } from "@/lib/mail-templates";
 
 const prisma = new PrismaClient();
 
@@ -47,12 +48,7 @@ export async function resendCodeAction(email) {
     await sendMail({
       to: email,
       subject: "Yeni Doğrulama Kodunuz - Mezun Takip Sistemi",
-      html: `
-        <h3>Doğrulama Kodunuz Yenilendi</h3>
-        <p>İsteğiniz üzerine yeni bir doğrulama kodu oluşturuldu:</p>
-        <h1 style="color: #2563EB; letter-spacing: 5px;">${verificationCode}</h1>
-        <p>Bu kod 3 dakika süreyle geçerlidir.</p>
-      `,
+      html: getResendCodeEmailTemplate(verificationCode),
     });
 
     return { success: true, message: "Yeni kod e-posta adresinize gönderildi." };

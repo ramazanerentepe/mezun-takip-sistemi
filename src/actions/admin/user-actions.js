@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { decrypt } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { sendMail } from "@/lib/send-mail";
+import { getUserApprovedEmailTemplate, getUserDeletedEmailTemplate } from "@/lib/mail-templates";
 
 const prisma = new PrismaClient();
 
@@ -42,20 +43,12 @@ export async function approveUser(userId) {
         ? `${updatedUser.profile.firstName} ${updatedUser.profile.lastName}` 
         : "Değerli Mezunumuz";
       
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      
       await sendMail({
         to: updatedUser.email,
         subject: "Hesabınız Onaylandı - Mezun Takip Sistemi",
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #9d182e;">Tebrikler, ${fullName}!</h2>
-            <p>Mezun Takip Sistemi hesabınız yönetici tarafından başarıyla onaylanmıştır.</p>
-            <p>Artık platforma giriş yapabilir, mezun ağına katılabilir ve tüm özelliklerden faydalanabilirsiniz.</p>
-            <br>
-            <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login" style="background-color: #9d182e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Sisteme Giriş Yap</a></p>
-            <br>
-            <p>İyi günler dileriz.</p>
-          </div>
-        `
+        html: getUserApprovedEmailTemplate(fullName, appUrl)
       });
     } catch (mailError) {
       console.error(mailError);
@@ -114,25 +107,7 @@ export async function deleteUser(userId, reason) {
       await sendMail({
         to: targetUser.email,
         subject: "Hesabınız Silindi - Mezun Takip Sistemi",
-        html: `
-          <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #9d182e;">Merhaba ${targetName},</h2>
-            <p>Mezun Takip Sistemi hesabınız sistem yöneticisi tarafından silinmiştir.</p>
-            
-            <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #9d182e; margin: 20px 0;">
-              <strong>Silme Sebebi:</strong><br/>
-              ${deleteReason}
-            </div>
-            
-            <p>Bu işlemle veya hesabınızla ilgili bir sorunuz varsa, işlemi gerçekleştiren yönetici ile iletişime geçebilirsiniz:</p>
-            <ul>
-              <li><strong>Yönetici:</strong> ${adminName}</li>
-              <li><strong>İletişim Maili:</strong> <a href="mailto:${adminEmail}">${adminEmail}</a></li>
-            </ul>
-            <br>
-            <p>İyi günler dileriz.</p>
-          </div>
-        `
+        html: getUserDeletedEmailTemplate(targetName, deleteReason, adminName, adminEmail)
       });
     } catch (mailError) {
       console.error(mailError);

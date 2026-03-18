@@ -3,6 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { sendMail } from "@/lib/send-mail"; 
+import { getRegistrationEmailTemplate } from "@/lib/mail-templates";
 
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
@@ -73,13 +74,7 @@ export async function registerAction(data) {
     await sendMail({
       to: data.email,
       subject: "Mezun Takip Sistemi - E-posta Doğrulama",
-      html: `
-        <h3>Hoş Geldiniz, ${formattedFirstName} ${formattedLastName}</h3>
-        <p>Kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekmektedir.</p>
-        <p>Doğrulama kodunuz:</p>
-        <h1 style="color: #2563EB; letter-spacing: 5px;">${verificationCode}</h1>
-        <p><strong>Bilgilendirme:</strong> E-postanızı doğruladıktan sonra hesabınız yönetici onayına düşecektir.</p>
-      `
+      html: getRegistrationEmailTemplate(formattedFirstName, formattedLastName, verificationCode)
     });
 
     return { 
