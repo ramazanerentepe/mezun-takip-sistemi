@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
-import UserRow from './UserRow'; // Aynı klasörde oldukları için direkt çağırıyoruz
+import React from 'react';
+import UserRow from './UserRow'; 
 
 export default function UsersTable({ initialUsers }) {
-  const [users, setUsers] = useState(initialUsers);
-
-  if (!users || users.length === 0) {
+  
+  if (!initialUsers || initialUsers.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg">
         Sistemde henüz kayıtlı kullanıcı bulunmamaktadır.
@@ -28,7 +27,7 @@ export default function UsersTable({ initialUsers }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-zinc-700">
-          {users.map((user) => (
+          {initialUsers.map((user) => (
             <UserRow 
               key={user.id} 
               user={user} 

@@ -2,8 +2,11 @@
 
 import React, { useState } from 'react';
 import { approveUser, deleteUser, updateUserRole } from '@/actions/admin/user-actions';
+import { useRouter } from 'next/navigation'; 
 
 export default function UserRow({ user }) {
+  const router = useRouter(); 
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingRole, setIsEditingRole] = useState(false);
   const [selectedRole, setSelectedRole] = useState(user.role);
@@ -16,7 +19,11 @@ export default function UserRow({ user }) {
   const handleApprove = async () => {
     setIsLoading(true);
     const result = await approveUser(user.id);
-    if (result.error) alert(result.error);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      router.refresh(); 
+    }
     setIsLoading(false);
   };
 
@@ -26,7 +33,11 @@ export default function UserRow({ user }) {
     
     setIsLoading(true);
     const result = await deleteUser(user.id);
-    if (result.error) alert(result.error);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      router.refresh(); 
+    }
     setIsLoading(false);
   };
 
@@ -39,8 +50,12 @@ export default function UserRow({ user }) {
     
     setIsLoading(true);
     const result = await updateUserRole(user.id, selectedRole);
-    if (result.error) alert(result.error);
-    setIsEditingRole(false);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      setIsEditingRole(false);
+      router.refresh(); 
+    }
     setIsLoading(false);
   };
 
@@ -93,7 +108,6 @@ export default function UserRow({ user }) {
       </td>
       <td className="p-4 text-right space-x-2">
         
-        {/* Onayla Butonu */}
         {!user.isAdminApproved && (
           <button 
             onClick={handleApprove}
@@ -103,7 +117,6 @@ export default function UserRow({ user }) {
           </button>
         )}
 
-        {/* Yetki Düzenle / Kaydet Butonu */}
         {isEditingRole ? (
           <button 
             onClick={handleRoleSave}
@@ -120,7 +133,6 @@ export default function UserRow({ user }) {
           </button>
         )}
 
-        {/* Sil Butonu */}
         <button 
           onClick={handleDelete}
           className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-700 transition-colors"
