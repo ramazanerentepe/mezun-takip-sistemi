@@ -24,14 +24,17 @@ export default async function FeedPage() {
     });
   }
 
+  // 1. Gönderileri Çek (DÜZELTME BURADA: images: true eklendi)
   const dbPosts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       author: { include: { profile: true } },
+      images: true, // YENİ: Gönderiye ait fotoğrafları da veritabanından getir
       _count: { select: { likes: true, comments: true } }
     }
   });
 
+  // (DÜZELTME BURADA: imageUrl yerine images dizisi aktarıldı)
   const formattedPosts = dbPosts.map(post => ({
     id: post.id,
     author: {
@@ -40,11 +43,17 @@ export default async function FeedPage() {
       avatarUrl: post.author.profile?.avatarUrl || "/logo.png",
     },
     content: post.content,
-    imageUrl: post.imageUrl,
+    images: post.images, // YENİ: Fotoğraf dizisini PostCard'a yolluyoruz
     likes: post._count.likes,
     comments: post._count.comments,
     time: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' }).format(post.createdAt),
   }));
+
+  // 2. Sağ Sütun İçin Duyuruları/Haberleri Çek
+  const dbAnnouncements = await prisma.announcement.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 5, 
+  });
 
   const profile = dbUser?.profile;
 
@@ -58,7 +67,7 @@ export default async function FeedPage() {
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors">
               <div className="h-16 w-full bg-red-600 dark:bg-red-700"></div>
               <div className="px-4 pb-4 flex flex-col items-center text-center -mt-10">
-                <image
+                <img
                   src={profile?.avatarUrl || "/logo.png"} 
                   className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] bg-white object-cover transition-colors"
                   alt="Profil"
@@ -88,26 +97,49 @@ export default async function FeedPage() {
               avatarUrl: profile?.avatarUrl || "/logo.png"
             }} />
             
-            {formattedPosts.map(post => <PostCard key={post.id} post={post} />)}
+            {formattedPosts.length > 0 ? (
+              formattedPosts.map(post => <PostCard key={post.id} post={post} />)
+            ) : (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-10 bg-white dark:bg-[#1e1e1e] rounded-xl border border-gray-200 dark:border-neutral-800">
+                Henüz hiç gönderi paylaşılmamış. İlk paylaşan sen ol!
+              </div>
+            )}
           </div>
 
-          {/* ======================= SAĞ SÜTUN (HABERLER) ======================= */}
+          {/* ======================= SAĞ SÜTUN (HABERLER / DUYURULAR) ======================= */}
           <div className="hidden lg:block col-span-1 sticky top-24">
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-4 transition-colors">
               <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 <span className="w-1 h-4 bg-red-600 dark:bg-red-500 mr-2 rounded-full"></span>
                 KTÜN Gündemi
               </h3>
+              
               <div className="space-y-4 text-xs">
-                <div className="group cursor-pointer">
-                  <p className="font-bold text-gray-800 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition">Mezunlar Günü 2024</p>
-                  <p className="text-gray-400 dark:text-gray-500">2 saat önce</p>
-                </div>
-                <div className="group cursor-pointer">
-                  <p className="font-bold text-gray-800 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition">Teknopark İş İlanları</p>
-                  <p className="text-gray-400 dark:text-gray-500">5 saat önce</p>
-                </div>
+                {dbAnnouncements.length > 0 ? (
+                  dbAnnouncements.map((announcement) => (
+                    <a 
+                      key={announcement.id} 
+                      href={announcement.link || "#"} 
+                      className="group block"
+                    >
+                      <p className="font-bold text-gray-800 dark:text-gray-300 group-hover:text-red-600 dark:group-hover:text-red-400 transition line-clamp-2">
+                        {announcement.title}
+                      </p>
+                      <p className="text-gray-400 dark:text-gray-500 mt-1">
+                        {new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short' }).format(announcement.createdAt)}
+                      </p>
+                    </a>
+                  ))
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400 italic">
+                    Şu an için yeni bir duyuru bulunmamaktadır.
+                  </p>
+                )}
               </div>
+            </div>
+            
+            <div className="text-center text-xs text-gray-400 dark:text-gray-600 mt-4 px-4">
+              <p>KTÜN Mezun Takip Sistemi © 2024</p>
             </div>
           </div>
 
