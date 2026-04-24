@@ -76,7 +76,6 @@ export async function createPost(formData) {
   }
 }
 
-// YENİ EKLENEN KISIM: Beğeni (Like) Açma/Kapama Fonksiyonu
 export async function toggleLike(postId) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session");
@@ -111,5 +110,37 @@ export async function toggleLike(postId) {
   } catch (e) {
     console.error("Beğeni işlemi başarısız:", e);
     return { error: "Beğeni işlemi sırasında bir hata oluştu." };
+  }
+}
+
+// YENİ EKLENEN KISIM: Yorum (Comment) Ekleme Fonksiyonu
+export async function addComment(formData) {
+  const content = formData.get("content");
+  const postId = formData.get("postId");
+
+  if (!content || content.trim() === "") {
+    return { error: "Yorum içeriği boş olamaz." };
+  }
+
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session");
+  const session = sessionCookie ? await decrypt(sessionCookie.value) : null;
+  
+  if (!session?.userId) return { error: "Oturum hatası. Lütfen giriş yapın." };
+
+  try {
+    await prisma.comment.create({
+      data: {
+        content: content,
+        postId: postId,
+        authorId: session.userId,
+      }
+    });
+
+    revalidatePath("/feed");
+    return { success: true };
+  } catch (e) {
+    console.error("Yorum ekleme hatası:", e);
+    return { error: "Yorum eklenirken bir hata oluştu." };
   }
 }

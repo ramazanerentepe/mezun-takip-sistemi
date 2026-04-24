@@ -12,15 +12,18 @@ import {
   EyeOff,
   Link as LinkIcon
 } from "lucide-react";
-import { toggleLike } from "@/actions/portal/post-actions";
+import { toggleLike, addComment } from "@/actions/portal/post-actions";
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, currentUserAvatar }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showComments, setShowComments] = useState(false); 
   
   const [isLiked, setIsLiked] = useState(post.isLikedByMe);
   const [likesCount, setLikesCount] = useState(post.likes);
-  const [isPending, startTransition] = useTransition();
+  
+  // Yorumların gönderilme state'i
+  const [isPendingComment, startCommentTransition] = useTransition();
+  const commentFormRef = useRef(null);
 
   const menuRef = useRef(null);
 
@@ -52,6 +55,23 @@ export default function PostCard({ post }) {
     const postUrl = `${window.location.origin}/post/${post.id}`;
     navigator.clipboard.writeText(postUrl);
     alert("Gönderi bağlantısı panoya kopyalandı!");
+  };
+
+  // Yorum Gönderme Form İşlemi
+  const handleCommentSubmit = (formData) => {
+    const content = formData.get("content");
+    if (!content.trim()) return; 
+
+    formData.append("postId", post.id);
+
+    startCommentTransition(async () => {
+      const result = await addComment(formData);
+      if (result?.error) {
+        alert(result.error);
+      } else {
+        commentFormRef.current?.reset();
+      }
+    });
   };
 
   return (
@@ -126,7 +146,7 @@ export default function PostCard({ post }) {
           onClick={() => setShowComments(!showComments)}
           className="hover:text-red-600 hover:underline cursor-pointer transition"
         >
-          {post.comments} yorum
+          {post.commentsCount} yorum
         </div>
       </div>
 
@@ -167,22 +187,51 @@ export default function PostCard({ post }) {
 
       {showComments && (
         <div className="px-4 py-3 bg-gray-50 dark:bg-neutral-900/50 border-t border-gray-200 dark:border-neutral-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex justify-center items-center text-white text-xs font-bold">
-              Sen
-            </div>
-            <div className="flex-1 relative">
+          
+          {/* Yorum Girdi Formu */}
+          <div className="flex items-center space-x-3 mb-4">
+            <img 
+              src={currentUserAvatar} 
+              alt="Profil" 
+              className="w-8 h-8 rounded-full border border-gray-200 dark:border-neutral-700 object-cover" 
+            />
+            <form action={handleCommentSubmit} ref={commentFormRef} className="flex-1 relative">
               <input 
                 type="text" 
+                name="content"
+                disabled={isPendingComment}
                 placeholder="Yorum ekle..." 
-                className="w-full bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-sm rounded-full px-4 py-2 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition pr-10"
+                className="w-full bg-white dark:bg-neutral-800 border border-gray-300 dark:border-neutral-700 text-sm rounded-full px-4 py-2 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition pr-10 disabled:opacity-50"
+                autoComplete="off"
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition">
-                <Send className="w-4 h-4" />
+              <button 
+                type="submit" 
+                disabled={isPendingComment}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition disabled:opacity-50 p-1"
+              >
+                {isPendingComment ? <span className="text-xs font-bold text-red-500">...</span> : <Send className="w-4 h-4" />}
               </button>
-            </div>
+            </form>
           </div>
-          <p className="text-center text-xs text-gray-400 mt-3 italic">Yorumlar backend bağlantısı yapıldığında burada listelenecektir.</p>
+
+          {/* Listelenen Yorumlar Alanı */}
+          {post.commentsList && post.commentsList.length > 0 ? (
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+              {post.commentsList.map(comment => (
+                <div key={comment.id} className="flex items-start space-x-2">
+                  <img src={comment.authorAvatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-gray-100 dark:border-neutral-700 flex-shrink-0" />
+                  <div className="bg-white dark:bg-neutral-800 p-2.5 rounded-xl text-sm border border-gray-100 dark:border-neutral-700 w-full shadow-sm">
+                    <span className="font-bold text-gray-900 dark:text-gray-100 block text-xs">{comment.authorName}</span>
+                    <p className="text-gray-700 dark:text-gray-300 mt-1 leading-relaxed">{comment.content}</p>
+                    <span className="text-[10px] text-gray-400 mt-1 block">{comment.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-gray-400 italic py-2">İlk yorumu yapan sen ol!</p>
+          )}
+
         </div>
       )}
       

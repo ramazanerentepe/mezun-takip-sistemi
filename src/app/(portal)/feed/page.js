@@ -24,13 +24,18 @@ export default async function FeedPage() {
     });
   }
 
-  // 1. Gönderileri Çek (Beğeni durumu da dahil edildi)
+  // 1. Gönderileri Çek (Yorumlar da veritabanından dahil edildi)
   const dbPosts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       author: { include: { profile: true } },
       images: true, 
-      likes: { where: { userId: session?.userId || "" } }, // Kullanıcının beğenisi var mı?
+      likes: { where: { userId: session?.userId || "" } },
+      // Gönderiye ait yorumları ve yorum yazanların profillerini en eskiden yeniye çek
+      comments: { 
+        include: { author: { include: { profile: true } } },
+        orderBy: { createdAt: 'asc' } 
+      },
       _count: { select: { likes: true, comments: true } }
     }
   });
@@ -45,12 +50,19 @@ export default async function FeedPage() {
     content: post.content,
     images: post.images, 
     likes: post._count.likes,
-    comments: post._count.comments,
-    isLikedByMe: post.likes.length > 0, // Dizi boş değilse true döner
+    commentsCount: post._count.comments,
+    isLikedByMe: post.likes.length > 0, 
     time: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' }).format(post.createdAt),
+    // Yorumları Listelemek için formata uygun map'ledik
+    commentsList: post.comments.map(c => ({
+      id: c.id,
+      content: c.content,
+      authorName: `${c.author.profile?.firstName || "İsimsiz"} ${c.author.profile?.lastName || ""}`,
+      authorAvatar: c.author.profile?.avatarUrl || "/logo.png",
+      time: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(c.createdAt)
+    }))
   }));
 
-  // 2. Sağ Sütun İçin Duyuruları/Haberleri Çek
   const dbAnnouncements = await prisma.announcement.findMany({
     orderBy: { createdAt: "desc" },
     take: 5, 
@@ -63,7 +75,7 @@ export default async function FeedPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           
-          {/* SOL SÜTUN (PROFİL ÖZETİ) */}
+          {/* SOL SÜTUN */}
           <div className="hidden lg:block col-span-1 sticky top-24">
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors">
               <div className="h-16 w-full bg-red-600 dark:bg-red-700"></div>
@@ -91,7 +103,7 @@ export default async function FeedPage() {
             </div>
           </div>
 
-          {/* ORTA SÜTUN (AKIŞ) */}
+          {/* ORTA SÜTUN */}
           <div className="col-span-1 lg:col-span-2 space-y-4">
             <CreatePostBox currentUser={{
               firstName: profile?.firstName || "Mezun",
@@ -99,7 +111,14 @@ export default async function FeedPage() {
             }} />
             
             {formattedPosts.length > 0 ? (
-              formattedPosts.map(post => <PostCard key={post.id} post={post} />)
+              formattedPosts.map(post => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  // Oturum açmış kullanıcının resmini de PostCard'a gönderiyoruz
+                  currentUserAvatar={profile?.avatarUrl || "/logo.png"} 
+                />
+              ))
             ) : (
               <div className="text-center text-gray-500 dark:text-gray-400 py-10 bg-white dark:bg-[#1e1e1e] rounded-xl border border-gray-200 dark:border-neutral-800">
                 Henüz hiç gönderi paylaşılmamış. İlk paylaşan sen ol!
@@ -107,7 +126,7 @@ export default async function FeedPage() {
             )}
           </div>
 
-          {/* SAĞ SÜTUN (HABERLER / DUYURULAR) */}
+          {/* SAĞ SÜTUN */}
           <div className="hidden lg:block col-span-1 sticky top-24">
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-4 transition-colors">
               <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
