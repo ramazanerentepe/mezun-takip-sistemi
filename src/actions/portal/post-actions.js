@@ -4,9 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { decrypt } from "@/lib/session";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import fs from "fs";
+import { uploadImageToCloudinary } from "@/lib/cloudinary"; // YENİ: Kendi yazdığımız modülü içe aktardık
 
 const prisma = new PrismaClient();
 
@@ -39,26 +37,15 @@ export async function createPost(formData) {
     const validImages = images.filter(img => img.size > 0);
     
     if (validImages.length > 0) {
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-      
-      if (!fs.existsSync(uploadDir)) {
-        await mkdir(uploadDir, { recursive: true });
-      }
-
       const imageData = [];
 
       for (const file of validImages) {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
         
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const fileName = `${uniqueSuffix}-${file.name.replace(/\s+/g, '-')}`;
-        const filePath = path.join(uploadDir, fileName);
-
-        await writeFile(filePath, buffer);
+        // YENİ: Resmi buluta yükle ve sonucunu al
+        const uploadResult = await uploadImageToCloudinary(file);
 
         imageData.push({
-          url: `/uploads/${fileName}`,
+          url: uploadResult.secure_url,
           postId: newPost.id
         });
       }
@@ -76,6 +63,7 @@ export async function createPost(formData) {
   }
 }
 
+// Beğeni Fonksiyonu
 export async function toggleLike(postId) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session");
@@ -113,7 +101,7 @@ export async function toggleLike(postId) {
   }
 }
 
-// YENİ EKLENEN KISIM: Yorum (Comment) Ekleme Fonksiyonu
+// Yorum Fonksiyonu
 export async function addComment(formData) {
   const content = formData.get("content");
   const postId = formData.get("postId");
