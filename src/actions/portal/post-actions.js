@@ -29,7 +29,6 @@ export async function createPost(formData) {
   if (!session?.userId) return { error: "Oturum hatası." };
 
   try {
-    // 1. Gönderiyi (Post) Oluştur
     const newPost = await prisma.post.create({
       data: {
         content: content || "",
@@ -39,12 +38,9 @@ export async function createPost(formData) {
 
     const validImages = images.filter(img => img.size > 0);
     
-    // 2. Fotoğrafları Fiziksel Olarak Kaydet ve Veritabanına Ekle
     if (validImages.length > 0) {
-      // public/uploads klasörünün yolunu belirle
       const uploadDir = path.join(process.cwd(), "public/uploads");
       
-      // Eğer klasör yoksa oluştur
       if (!fs.existsSync(uploadDir)) {
         await mkdir(uploadDir, { recursive: true });
       }
@@ -52,26 +48,21 @@ export async function createPost(formData) {
       const imageData = [];
 
       for (const file of validImages) {
-        // Dosyayı Buffer'a çevir (Kaydedilebilir veri formatı)
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
         
-        // Boşlukları temizle ve benzersiz bir dosya adı oluştur
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileName = `${uniqueSuffix}-${file.name.replace(/\s+/g, '-')}`;
         const filePath = path.join(uploadDir, fileName);
 
-        // Dosyayı public/uploads klasörüne yaz (İşte eksik olan parça buydu!)
         await writeFile(filePath, buffer);
 
-        // Veritabanı için eklenecek veriyi hazırla
         imageData.push({
           url: `/uploads/${fileName}`,
           postId: newPost.id
         });
       }
 
-      // 3. Veritabanına (PostImage tablosuna) resim linklerini kaydet
       await prisma.postImage.createMany({
         data: imageData
       });
@@ -82,5 +73,43 @@ export async function createPost(formData) {
   } catch (e) {
     console.error("Gönderi paylaşım hatası:", e);
     return { error: "Gönderi oluşturulurken bir hata oluştu." };
+  }
+}
+
+// YENİ EKLENEN KISIM: Beğeni (Like) Açma/Kapama Fonksiyonu
+export async function toggleLike(postId) {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session");
+  const session = sessionCookie ? await decrypt(sessionCookie.value) : null;
+  
+  if (!session?.userId) return { error: "Oturum hatası. Lütfen giriş yapın." };
+
+  try {
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        postId_userId: {
+          postId: postId,
+          userId: session.userId,
+        }
+      }
+    });
+
+    if (existingLike) {
+      await prisma.like.delete({ where: { id: existingLike.id } });
+      revalidatePath("/feed");
+      return { success: true, liked: false };
+    } else {
+      await prisma.like.create({
+        data: {
+          postId: postId,
+          userId: session.userId,
+        }
+      });
+      revalidatePath("/feed");
+      return { success: true, liked: true };
+    }
+  } catch (e) {
+    console.error("Beğeni işlemi başarısız:", e);
+    return { error: "Beğeni işlemi sırasında bir hata oluştu." };
   }
 }

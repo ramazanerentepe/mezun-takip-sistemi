@@ -24,17 +24,17 @@ export default async function FeedPage() {
     });
   }
 
-  // 1. Gönderileri Çek (DÜZELTME BURADA: images: true eklendi)
+  // 1. Gönderileri Çek (Beğeni durumu da dahil edildi)
   const dbPosts = await prisma.post.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       author: { include: { profile: true } },
-      images: true, // YENİ: Gönderiye ait fotoğrafları da veritabanından getir
+      images: true, 
+      likes: { where: { userId: session?.userId || "" } }, // Kullanıcının beğenisi var mı?
       _count: { select: { likes: true, comments: true } }
     }
   });
 
-  // (DÜZELTME BURADA: imageUrl yerine images dizisi aktarıldı)
   const formattedPosts = dbPosts.map(post => ({
     id: post.id,
     author: {
@@ -43,9 +43,10 @@ export default async function FeedPage() {
       avatarUrl: post.author.profile?.avatarUrl || "/logo.png",
     },
     content: post.content,
-    images: post.images, // YENİ: Fotoğraf dizisini PostCard'a yolluyoruz
+    images: post.images, 
     likes: post._count.likes,
     comments: post._count.comments,
+    isLikedByMe: post.likes.length > 0, // Dizi boş değilse true döner
     time: new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long' }).format(post.createdAt),
   }));
 
@@ -62,7 +63,7 @@ export default async function FeedPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           
-          {/* ======================= SOL SÜTUN (PROFİL ÖZETİ) ======================= */}
+          {/* SOL SÜTUN (PROFİL ÖZETİ) */}
           <div className="hidden lg:block col-span-1 sticky top-24">
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden transition-colors">
               <div className="h-16 w-full bg-red-600 dark:bg-red-700"></div>
@@ -90,7 +91,7 @@ export default async function FeedPage() {
             </div>
           </div>
 
-          {/* ======================= ORTA SÜTUN (AKIŞ) ======================= */}
+          {/* ORTA SÜTUN (AKIŞ) */}
           <div className="col-span-1 lg:col-span-2 space-y-4">
             <CreatePostBox currentUser={{
               firstName: profile?.firstName || "Mezun",
@@ -106,7 +107,7 @@ export default async function FeedPage() {
             )}
           </div>
 
-          {/* ======================= SAĞ SÜTUN (HABERLER / DUYURULAR) ======================= */}
+          {/* SAĞ SÜTUN (HABERLER / DUYURULAR) */}
           <div className="hidden lg:block col-span-1 sticky top-24">
             <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 p-4 transition-colors">
               <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
