@@ -53,7 +53,13 @@ export default async function AdminLayout({ children }) {
             >
               Kullanıcılar
             </Link>
-            
+                        {/* Yeni Raporlanan Postlar Butonu */}
+            <Link 
+              href="/reports" 
+              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
+            >
+              Raporlanan Postlar
+            </Link>
             <Link 
               href="/settings" 
               className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
@@ -61,13 +67,7 @@ export default async function AdminLayout({ children }) {
               Ayarlar
             </Link>
 
-            {/* Yeni Raporlanan Postlar Butonu */}
-            <Link 
-              href="/reports" 
-              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
-            >
-              Raporlanan Postlar
-            </Link>
+
           </nav>
         </aside>
 
