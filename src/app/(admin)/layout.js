@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { decrypt } from "@/lib/session";
 import { PrismaClient } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 const prisma = new PrismaClient();
 
@@ -11,23 +12,29 @@ export default async function AdminLayout({ children }) {
   const sessionCookie = cookieStore.get("session")?.value;
   const session = await decrypt(sessionCookie);
 
-  let currentUser = null;
-  if (session?.userId) {
-    currentUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        profile: {
-          select: {
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-          }
+  if (!session?.userId) {
+    redirect("/login");
+  }
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      profile: {
+        select: {
+          firstName: true,
+          lastName: true,
+          avatarUrl: true,
         }
       }
-    });
+    }
+  });
+
+  // Kullanıcı admin veya süper admin değilse engelle
+  if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
+    redirect("/feed");
   }
 
   return (
@@ -48,17 +55,18 @@ export default async function AdminLayout({ children }) {
             </Link>
             
             <Link 
-              href="/reports" 
-              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
-            >
-              Raporlanan Postlar
-            </Link>
-
-            <Link 
               href="/settings" 
               className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
             >
               Ayarlar
+            </Link>
+
+            {/* Yeni Raporlanan Postlar Butonu */}
+            <Link 
+              href="/reports" 
+              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
+            >
+              Raporlanan Postlar
             </Link>
           </nav>
         </aside>
