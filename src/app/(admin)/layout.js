@@ -7,12 +7,10 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export default async function AdminLayout({ children }) {
-  // 1. Tarayıcıdan session çerezini al ve çöz
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
   const session = await decrypt(sessionCookie);
 
-  // 2. Giriş yapan kullanıcının verilerini veritabanından çek
   let currentUser = null;
   if (session?.userId) {
     currentUser = await prisma.user.findUnique({
@@ -35,7 +33,6 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-zinc-900">
       
-      {/* 3. Çektiğimiz kullanıcı bilgisini Navbar'a prop olarak geçiriyoruz */}
       <Navbar user={currentUser} />
 
       <div className="flex flex-1 overflow-hidden">
@@ -49,6 +46,14 @@ export default async function AdminLayout({ children }) {
             >
               Kullanıcılar
             </Link>
+            
+            <Link 
+              href="/reports" 
+              className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
+            >
+              Raporlanan Postlar
+            </Link>
+
             <Link 
               href="/settings" 
               className="p-2 hover:bg-slate-700 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors text-sm font-medium"
